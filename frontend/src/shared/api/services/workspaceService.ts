@@ -24,7 +24,7 @@ export interface WorkspaceMember {
 
 export const workspaceService = {
   getAll: async (params?: { page?: number; limit?: number }): Promise<ServiceResponse<Workspace[]>> => {
-    return apiFactory.get(API_ENDPOINTS.WORKSPACES.BASE, params);
+    return apiFactory.get(API_ENDPOINTS.WORKSPACES.BASE, { params });
   },
 
   getById: async (id: string): Promise<ApiResponse<Workspace>> => {

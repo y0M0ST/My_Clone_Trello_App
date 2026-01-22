@@ -1360,4 +1360,46 @@ route.delete(
   }
 );
 
+/**
+ * @swagger
+ * /cards/move:
+ *   patch:
+ *     tags:
+ *       - Card
+ *     summary: Move card (Drag & Drop)
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - cardId
+ *               - nextColumnId
+ *               - nextIndex
+ *             properties:
+ *               cardId:
+ *                 type: string
+ *                 format: uuid
+ *               prevColumnId:
+ *                 type: string
+ *                 format: uuid
+ *               prevIndex:
+ *                 type: number
+ *               nextColumnId:
+ *                 type: string
+ *                 format: uuid
+ *               nextIndex:
+ *                 type: number
+ *     responses:
+ *       200:
+ *         description: Card moved successfully
+ */
+route.patch('/move', async (req, res) => {
+  const response = await CardController.moveCard(req);
+  return handleServiceResponse(response, res);
+});
+
 export default route;

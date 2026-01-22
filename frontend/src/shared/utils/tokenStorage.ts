@@ -1,4 +1,3 @@
-// frontend/src/shared/utils/tokenStorage.ts
 import type { User } from '@/shared/types';
 
 const TOKEN_KEYS = {
@@ -8,7 +7,6 @@ const TOKEN_KEYS = {
 } as const;
 
 export const tokenStorage = {
-  // Access Token
   getAccessToken: (): string | null => {
     return localStorage.getItem(TOKEN_KEYS.ACCESS_TOKEN);
   },
@@ -17,7 +15,6 @@ export const tokenStorage = {
     localStorage.setItem(TOKEN_KEYS.ACCESS_TOKEN, token);
   },
 
-  // Refresh Token
   getRefreshToken: (): string | null => {
     return localStorage.getItem(TOKEN_KEYS.REFRESH_TOKEN);
   },
@@ -26,7 +23,6 @@ export const tokenStorage = {
     localStorage.setItem(TOKEN_KEYS.REFRESH_TOKEN, token);
   },
 
-  // User
   getUser: (): User | null => {
     const userJson = localStorage.getItem(TOKEN_KEYS.USER);
     if (!userJson) return null;
@@ -41,14 +37,12 @@ export const tokenStorage = {
     localStorage.setItem(TOKEN_KEYS.USER, JSON.stringify(user));
   },
 
-  // Clear all
   clearTokens: (): void => {
     localStorage.removeItem(TOKEN_KEYS.ACCESS_TOKEN);
     localStorage.removeItem(TOKEN_KEYS.REFRESH_TOKEN);
     localStorage.removeItem(TOKEN_KEYS.USER);
   },
 
-  // Check if tokens exist
   hasTokens: (): boolean => {
     return !!(
       localStorage.getItem(TOKEN_KEYS.ACCESS_TOKEN) &&

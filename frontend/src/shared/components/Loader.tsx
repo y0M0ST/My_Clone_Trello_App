@@ -1,4 +1,3 @@
-// frontend/src/shared/components/Loader.tsx
 import { Loader2 } from "lucide-react";
 
 export const PageLoader = () => {

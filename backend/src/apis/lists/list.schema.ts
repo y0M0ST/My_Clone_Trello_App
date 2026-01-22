@@ -9,14 +9,12 @@ export const CreateListSchema = z.object({
   }),
 });
 
-// --- List Id Schema ---
 export const ListIdSchema = z.object({
   params: z.object({
     id: z.uuid(),
   }),
 });
 
-// --- Move List to Board Schema ---
 export const MoveListToBoardSchema = z.object({
   params: z.object({
     id: z.uuid(),
@@ -27,7 +25,6 @@ export const MoveListToBoardSchema = z.object({
   }),
 });
 
-// --- Move All Cards Schema ---
 export const MoveAllCardsSchema = z.object({
   params: z.object({
     id: z.uuid(),
@@ -38,7 +35,6 @@ export const MoveAllCardsSchema = z.object({
   }),
 });
 
-// --- Copy List Schema ---
 export const CopyListSchema = z.object({
   params: z.object({
     id: z.uuid(),

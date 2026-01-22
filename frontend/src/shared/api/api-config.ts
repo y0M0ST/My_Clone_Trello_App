@@ -1,4 +1,3 @@
-// frontend/src/shared/api/api-config.ts
 import axios, {
   type AxiosInstance,
   type InternalAxiosRequestConfig,
@@ -22,7 +21,6 @@ const apiConfig = {
 
 const apiClient: AxiosInstance = axios.create(apiConfig)
 
-// ✅ Refresh Token Logic với Queue Pattern
 let isRefreshing = false
 let failedQueue: Array<{
   resolve: (value?: unknown) => void
@@ -36,7 +34,6 @@ const processQueue = (error: AxiosError | null, token: string | null = null) => 
   failedQueue = []
 }
 
-// ✅ Request Interceptor - Thêm token vào mỗi request
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     const token = tokenStorage.getAccessToken()
@@ -59,7 +56,6 @@ apiClient.interceptors.request.use(
   }
 )
 
-// ✅ Response Interceptor - Xử lý refresh token
 apiClient.interceptors.response.use(
   (response) => {
     console.log("✅ API Response:", {
@@ -72,22 +68,15 @@ apiClient.interceptors.response.use(
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean }
     const errorData = error.response?.data as ApiErrorResponse | undefined
     const status = error.response?.status
-
-    // ❌ 403 - Forbidden
     if (status === 403) {
       console.error("Access Denied:", errorData)
       return Promise.reject(error)
     }
-
-    // ❌ 500 - Server Error
     if (status === 500) {
       console.error("Server Error:", errorData)
       return Promise.reject(error)
     }
-
-    // 🔁 401 - Unauthorized (Refresh Token Logic)
     if (status === 401 && !originalRequest._retry) {
-      // Skip refresh token cho các endpoint auth
       if (
         originalRequest.url?.includes("/auth/login") ||
         originalRequest.url?.includes("/auth/refresh-token")
@@ -97,7 +86,6 @@ apiClient.interceptors.response.use(
         return Promise.reject(error)
       }
 
-      // Nếu đang refresh, add request vào queue
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject })
@@ -125,7 +113,6 @@ apiClient.interceptors.response.use(
       try {
         console.log("🔁 Attempting to refresh token...")
 
-        // Gọi API refresh token
         const response = await axios.post(
           `${apiConfig.baseURL}auth/refresh-token`,
           { refreshToken },
@@ -134,27 +121,21 @@ apiClient.interceptors.response.use(
 
         const { accessToken, refreshToken: newRefreshToken } = response.data.responseObject
 
-        // Lưu token mới
         tokenStorage.setAccessToken(accessToken)
         if (newRefreshToken) {
           tokenStorage.setRefreshToken(newRefreshToken)
         }
-
-        console.log("✅ Token refreshed successfully")
-
-        // Process queue với token mới
+        console.log("Token refreshed successfully")
         processQueue(null, accessToken)
 
-        // Retry original request với token mới
         if (originalRequest.headers) {
           originalRequest.headers.Authorization = `Bearer ${accessToken}`
         }
 
         return apiClient(originalRequest)
       } catch (refreshError) {
-        console.error("❌ Refresh token failed:", refreshError)
+        console.error("Refresh token failed:", refreshError)
 
-        // Xóa tokens và redirect về login
         processQueue(refreshError as AxiosError, null)
         tokenStorage.clearTokens()
         window.location.href = "/login"
@@ -165,7 +146,6 @@ apiClient.interceptors.response.use(
       }
     }
 
-    // ❌ Other errors
     console.error("API Error:", {
       status,
       message: errorData?.message || (error as Error).message,

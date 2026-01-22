@@ -1,6 +1,4 @@
-import { redisClient } from '@/config/redisClient';
 import nodemailer from 'nodemailer';
-import { v4 as uuidv4 } from 'uuid';
 interface BoardInvitationEmailOptions {
   to: string;
   boardTitle: string;
@@ -11,8 +9,10 @@ interface BoardInvitationEmailOptions {
 
 export class EmailService {
   private transporter;
+
   constructor() {
     this.transporter = nodemailer.createTransport({
+      service: 'gmail', 
       host: 'smtp.gmail.com',
       port: 587,
       auth: {
@@ -22,51 +22,45 @@ export class EmailService {
     });
   }
 
-  async sendVerificationEmail(email: string) {
-    const oldToken = await redisClient.get(`email:${email}`);
-    if (oldToken) {
-      await redisClient.del(`verify:${oldToken}`);
-    }
-    const token = uuidv4();
-    const ttl = 15 * 60;
-    await redisClient.set(`verify:${token}`, email, { EX: ttl });
-    await redisClient.set(`email:${email}`, token, { EX: ttl });
-
-    const link = `${process.env.BACKEND_URL}/auth/verify-email?token=${token}`;
-    console.log(`[TEST] Verification link for ${email}: ${link}`);
+  async sendVerificationEmail(email: string, otp: string) {
 
     await this.transporter.sendMail({
       from: `"TrelloClone" <${process.env.SMTP_USER}>`,
       to: email,
-      subject: 'Verify your email',
-      html: `<h3>Welcome!</h3><p>Click <a href="${link}">here</a> to verify your email.</p>`,
+      subject: 'Xác thực tài khoản của bạn',
+      html: `
+        <div style="font-family: Arial, sans-serif; padding: 20px;">
+          <h2>Xin chào!</h2>
+          <p>Cảm ơn bạn đã đăng ký. Đây là mã xác thực của bạn:</p>
+          <h1 style="color: #007bff; letter-spacing: 5px;">${otp}</h1>
+          <p>Mã này sẽ hết hạn sau 5 phút.</p>
+          <p>Vui lòng không chia sẻ mã này cho ai khác.</p>
+        </div>
+      `,
     });
-  }
-
-  async verifyEmailToken(token: string) {
-    const email = await redisClient.get(`verify:${token}`);
-    if (!email) throw new Error('Invalid or expired token');
-    await redisClient.del(`verify:${token}`);
-    await redisClient.set(`verified:${email}`, 'true');
-    return email;
+    console.log(`[MAIL SENT] OTP sent to ${email}`);
   }
 
   async sendForgotPasswordEmail(email: string, code: string) {
-    await this.transporter.sendMail({
-      to: email,
-      subject: 'Reset your password',
-      html: `
-        <h3>Password Reset Request</h3>
-        <p>Use the following code to reset your password. It is valid for 15 minutes:</p>
-        <h2 style="color: #333;">${code}</h2>
-        <p>If you did not request this, please ignore this email.</p>
-      `,
-    });
+    try {
+      const info = await this.transporter.sendMail({
+        from: `"TrelloClone" <${process.env.SMTP_USER}>`,
+        to: email,
+        subject: 'Reset your password',
+        html: `
+            <h3>Password Reset Request</h3>
+            <p>Use the following code to reset your password. It is valid for 15 minutes:</p>
+            <h2 style="color: #333;">${code}</h2>
+            <p>If you did not request this, please ignore this email.</p>
+          `,
+      });
+    } catch (error) {
+      throw error; 
+    }
   }
 
   async sendBoardInvitationEmail(options: BoardInvitationEmailOptions) {
     const { to, boardTitle, inviterName, roleName, link } = options;
-
     const boardLink = link || `${process.env.BACKEND_URL}/boards`;
 
     await this.transporter.sendMail({

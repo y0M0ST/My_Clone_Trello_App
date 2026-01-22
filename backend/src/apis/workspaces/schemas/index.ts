@@ -6,7 +6,6 @@ import { z } from 'zod';
 
 extendZodWithOpenApi(z);
 
-// --- Define Workspace Schemas ---
 export type Workspace = z.infer<typeof WorkspaceSchema>;
 export const WorkspaceSchema = z.object({
   id: z.string(),
@@ -19,12 +18,10 @@ export const WorkspaceSchema = z.object({
   updatedAt: z.date(),
 });
 
-// --- Define Get Workspace Schemas ---
 export const GetWorkspaceSchema = z.object({
   params: z.object({ id: z.uuid('ID must be a valid UUID') }),
 });
 
-// --- Define Create Workspace Schemas ---
 export const CreateWorkspaceContentSchema = z.object({
   title: z.string().min(2).max(100),
   description: z.string().max(500).optional(),
@@ -40,7 +37,6 @@ export const PostWorkspace: ZodRequestBody = {
   },
 };
 
-// --- Define Get Workspace Member Schemas ---
 export const GetMemberSchema = z.object({
   params: z.object({
     id: z.uuid('ID must be a valid UUID'),

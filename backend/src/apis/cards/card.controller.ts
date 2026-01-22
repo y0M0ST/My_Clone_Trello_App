@@ -657,4 +657,42 @@ export class CardController {
       );
     }
   }
+
+  static async moveCard(req: Request): Promise<ServiceResponse> {
+    try {
+      const {
+        cardId,
+        prevColumnId,
+        prevIndex,
+        nextColumnId,
+        nextIndex
+      } = req.body;
+
+      if (!cardId || !nextColumnId) {
+        throw new Error("Missing required fields for moving card");
+      }
+
+      const result = await cardService.moveCard({
+        cardId,
+        prevColumnId,
+        prevIndex,
+        nextColumnId,
+        nextIndex
+      });
+
+      return new ServiceResponse(
+        ResponseStatus.Success,
+        'Card moved successfully',
+        result,
+        StatusCodes.OK
+      );
+    } catch (error) {
+      return new ServiceResponse(
+        ResponseStatus.Failed,
+        (error as Error).message,
+        null,
+        StatusCodes.BAD_REQUEST
+      );
+    }
+  }
 }

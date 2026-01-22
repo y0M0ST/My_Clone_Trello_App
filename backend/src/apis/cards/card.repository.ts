@@ -223,7 +223,6 @@ export class CardRepository {
     await queryRunner.startTransaction();
 
     try {
-      // Tạo card mới
       const result = await queryRunner.manager
         .createQueryBuilder()
         .insert()
@@ -254,7 +253,6 @@ export class CardRepository {
 
       const newCard = result.raw[0] as Card;
 
-      // Copy relations nếu có sourceCardId
       if (copyOptions?.sourceCardId) {
         const sourceCard = await queryRunner.manager
           .createQueryBuilder(Card, 'card')
@@ -624,7 +622,6 @@ export class CardRepository {
       return null;
     }
 
-    // Get the action with user info
     const actionWithUser = await this.cardRepository.manager
       .createQueryBuilder()
       .select('action')
@@ -712,7 +709,6 @@ export class CardRepository {
 
     const attachment = result.raw[0];
 
-    // Update cover if setCover is true
     if (attachmentData.setCover) {
       await this.cardRepository
         .createQueryBuilder()
@@ -783,7 +779,6 @@ export class CardRepository {
     cardId: string,
     attachmentId: string,
     fields?: string
-    // eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
   ): Promise<any | null> {
     const query = this.cardRepository.manager
       .createQueryBuilder()
@@ -800,7 +795,6 @@ export class CardRepository {
     return await query.getOne();
   }
 
-  // Checklist methods
   async getChecklists(
     cardId: string,
     checkItems?: boolean,
@@ -877,7 +871,6 @@ export class CardRepository {
 
     const newChecklist = result.raw[0];
 
-    // Copy checkItems if sourceChecklistId provided
     if (sourceChecklistId) {
       const sourceCheckItems = await this.cardRepository.manager
         .createQueryBuilder()
@@ -969,7 +962,6 @@ export class CardRepository {
     return false;
   }
 
-  // CheckItem methods
   async getCheckItems(
     checklistId: string,
     filter?: string,
@@ -983,7 +975,6 @@ export class CardRepository {
       .orderBy('checkItem.position', 'ASC');
 
     if (filter === 'all' || !filter) {
-      // Return all items
     } else if (filter === 'none') {
       query.andWhere('1 = 0');
     }
@@ -1019,7 +1010,6 @@ export class CardRepository {
       dueReminder?: Date;
     }
   ): Promise<any> {
-    // Get cardId from checklist
     const checklist = await this.cardRepository.manager
       .createQueryBuilder()
       .select('checklist.cardId')
@@ -1143,7 +1133,6 @@ export class CardRepository {
       return false;
     }
 
-    // Get cardId from checklist
     const checklist = await this.cardRepository.manager
       .createQueryBuilder()
       .select('checklist.cardId')
@@ -1168,5 +1157,14 @@ export class CardRepository {
     }
 
     return false;
+  }
+
+  async getCardsByListId(listId: string): Promise<Card[]> {
+    const cardRepo = AppDataSource.getRepository(Card);
+
+    return await cardRepo.find({
+      where: { listId },
+      order: { position: 'ASC' }, 
+    });
   }
 }

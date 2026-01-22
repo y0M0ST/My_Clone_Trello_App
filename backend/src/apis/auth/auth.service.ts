@@ -25,29 +25,70 @@ export class AuthService {
     if (existingEmail) throw new Error('Email already exists');
 
     const hashedPassword = await bcrypt.hash(data.password, 10);
+
     const newUser = this.userRepository.create({
       ...data,
       password: hashedPassword,
-      isActive: true,
+      isActive: false, 
     });
+
     await this.userRepository.save(newUser);
 
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    await redisClient.set(`verify_email:${newUser.email}`, otp, { EX: 300 });
+
+    try {
+      await this.emailService.sendVerificationEmail(newUser.email, otp);
+    } catch (err) {
+      console.error("Gửi mail lỗi:", err);
+    }
+
     return {
-      message: 'Register successfully',
-      user: { name: newUser.name, email: newUser.email },
+      message: 'Registration successful. Please check your email for OTP.',
+      email: newUser.email,
     };
+  }
+
+  async verifyEmail(email: string, otp: string) {
+    const storedOtp = await redisClient.get(`verify_email:${email}`);
+
+    if (!storedOtp) {
+      throw new Error('Mã xác thực đã hết hạn hoặc không tồn tại');
+    }
+
+    if (storedOtp !== otp) {
+      throw new Error('Mã xác thực không chính xác');
+    }
+
+    const user = await this.userRepository.findOne({ where: { email } });
+    if (!user) throw new Error('User not found');
+
+    if (user.isActive) {
+      return { message: 'Tài khoản đã được kích hoạt trước đó' };
+    }
+
+    user.isActive = true; 
+    await this.userRepository.save(user);
+
+    await redisClient.del(`verify_email:${email}`);
+
+    return { message: 'Kích hoạt tài khoản thành công! Bạn có thể đăng nhập ngay.' };
   }
 
   async login(data: LoginInput, userAgent?: string, ip?: string) {
     const user = await this.userRepository
       .createQueryBuilder('user')
-      .select(['user.id', 'user.email', 'user.password', 'user.isActive'])
+      .select(['user.id', 'user.email', 'user.password', 'user.isActive',
+        'user.name',      
+        'user.bio',       
+        'user.avatarUrl'  
+      ])  
       .where('user.email = :email', { email: data.email })
       .getOne();
 
     if (!user) throw new Error('User not found');
     if (!user.isActive) throw new Error('Account is not active');
-
     const isPasswordValid = await bcrypt.compare(data.password, user.password);
     if (!isPasswordValid) throw new Error('Invalid password');
 
@@ -175,20 +216,35 @@ export class AuthService {
   }
 
   async forgetPassword(email: string) {
+    console.log("🔍 [AUTH DEBUG] Tìm user với email:", email);
+
     const user = await this.userRepository.findOne({
-      where: { email, isActive: true },
+      where: { email }, 
     });
-    if (!user) throw new Error('User not found!');
+
+    if (!user) {
+      console.error("❌ [AUTH ERROR] Không tìm thấy user trong DB!");
+      throw new Error('User not found!');
+    }
+
+    if (user.isActive === false) {
+      console.error("❌ [AUTH ERROR] User tồn tại nhưng chưa Active!");
+      throw new Error('Tài khoản chưa được kích hoạt, vui lòng kiểm tra email để xác thực trước.');
+    }
+
+    console.log("✅ [AUTH DEBUG] User found:", user.id);
+
     const code = Math.floor(100000 + Math.random() * 900000).toString();
-    const oldFotgetPasswordCode = await redisClient.get(
-      `forgetPassword:${email}`
-    );
+
+    const oldFotgetPasswordCode = await redisClient.get(`forgetPassword:${email}`);
     if (oldFotgetPasswordCode) {
       await redisClient.del(`forgetPassword:${oldFotgetPasswordCode}`);
     }
     await redisClient.set(`forgetPassword:${email}`, code, { EX: 15 * 60 });
     await redisClient.set(`forgetPasswordCode:${code}`, email, { EX: 15 * 60 });
+
     await this.emailService.sendForgotPasswordEmail(email, code);
+
     return { message: 'Verification code sent to your email' };
   }
 

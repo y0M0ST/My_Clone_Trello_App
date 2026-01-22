@@ -52,7 +52,6 @@ export class BoardService {
 
         await this.boardMemberRepository.save(boardMember);
 
-        // Invalidate RBAC cache for the board creator
         await rbacProvider.clearCache(creatorId, savedBoard.id);
       } else {
         throw new Error('Owner role not found');
@@ -88,15 +87,23 @@ export class BoardService {
 
   async getBoardById(id: string) {
     const board = await this.boardRepository.findOne({
-      relations: ['workspace'],
       where: { id },
+      relations: [
+        'workspace',
+        'boardMembers',      
+        'boardMembers.user',  
+        'lists',
+        'lists.cards',
+        'lists.cards.labels',
+        'lists.cards.members', 
+      ],
       select: {
         id: true,
         title: true,
         description: true,
         coverUrl: true,
         visibility: true,
-        isClosed: true,   
+        isClosed: true,
         commentPolicy: true,
         memberManagePolicy: true,
         createdAt: true,
@@ -105,11 +112,55 @@ export class BoardService {
           id: true,
           title: true,
         },
+        boardMembers: {
+          id: true,
+          roleId: true, 
+          user: {
+            id: true,
+            email: true,
+            name: true,     
+            avatarUrl: true, 
+          }
+        },
+        lists: {
+          id: true,
+          title: true,
+          position: true,
+          isArchived: true,
+          cards: {
+            id: true,
+            title: true,
+            position: true,
+            coverUrl: true,
+            description: true,
+          }
+        }
       },
+      order: {
+        lists: {
+          position: 'ASC', 
+        }
+      }
     });
 
     if (!board) throw new Error('Board not found');
-    return board;
+
+    const transformedBoard = {
+      ...board,
+      members: board.boardMembers.map(bm => ({
+        id: bm.user.id,
+        name: bm.user.name,
+        email: bm.user.email,
+        avatarUrl: bm.user.avatarUrl,
+        roleId: bm.roleId, 
+      })),
+      lists: board.lists.map(list => ({
+        ...list,
+        cards: list.cards ? list.cards.sort((a: any, b: any) => a.position - b.position) : []
+      }))
+    };
+
+    return transformedBoard;
   }
 
   async updateBoard(id: string, data: UpdateBoardDto) {
@@ -185,7 +236,6 @@ export class BoardService {
 
     await this.boardMemberRepository.save(newMember);
 
-    // Invalidate RBAC cache for the new board member
     await rbacProvider.clearCache(user.id, boardId);
 
     const savedMember = await this.boardMemberRepository.findOne({
@@ -289,7 +339,6 @@ export class BoardService {
     });
     await this.boardMemberRepository.save(newMember);
 
-    // Invalidate RBAC cache for the new board member
     await rbacProvider.clearCache(currentUserId, boardId);
 
     const savedMember = await this.boardMemberRepository.findOne({
@@ -463,7 +512,6 @@ export class BoardService {
       board.workspaceMembersCanEditAndJoin = settings.workspaceMembersCanEditAndJoin;
     }
 
-    // Không có gì thay đổi → trả luôn board hiện tại
     if (Object.keys(changedFields).length === 0) {
       return { board, changedFields };
     }
@@ -564,7 +612,6 @@ export class BoardService {
 
     if (!targetMember) throw new Error('Member not found in this board');
 
-    // Không cho đá owner (trừ khi chính owner tự rời board, tuỳ bạn muốn)
     if (
       targetMember.role.name === ROLES.BOARD_OWNER &&
       targetMember.userId !== currentUserId
@@ -574,7 +621,6 @@ export class BoardService {
 
     await this.boardMemberRepository.delete({ id: targetMember.id });
 
-    // Invalidate RBAC cache for the removed board member
     await rbacProvider.clearCache(userIdToRemove, boardId);
 
     return {
@@ -620,7 +666,6 @@ export class BoardService {
       qb.andWhere('card.dueDate <= :dueTo', { dueTo: filters.dueTo });
     }
 
-    // labels
     if (filters.labelIds && filters.labelIds.length > 0) {
       qb.innerJoin('card.labels', 'label').andWhere(
         'label.id IN (:...labelIds)',
@@ -630,7 +675,6 @@ export class BoardService {
       qb.leftJoinAndSelect('card.labels', 'label');
     }
 
-    // assignees
     if (filters.memberId) {
       qb.innerJoin('card.members', 'member').andWhere(
         'member.id = :memberId',

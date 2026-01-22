@@ -1,4 +1,3 @@
-// frontend/src/shared/ui/label.tsx
 import * as React from "react"
 import * as LabelPrimitive from "@radix-ui/react-label"
 

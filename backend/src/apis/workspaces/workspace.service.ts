@@ -37,7 +37,6 @@ export class WorkspaceService {
   }
 
   async createWorkspace(userId: string, data: createWorkspaceDto) {
-    // Tìm user và role song song vì không phụ thuộc vào nhau
     const [user, adminRole] = await Promise.all([
       this.userRepository.findOne({ where: { id: userId } }),
       this.roleRepository.findOne({
@@ -53,7 +52,6 @@ export class WorkspaceService {
       throw new Error('Workspace admin role not found');
     }
 
-    // Tạo workspace mới
     const newWorkspace = this.workspaceRepository.create({
       title: data.title,
       description: data.description,
@@ -63,7 +61,6 @@ export class WorkspaceService {
 
     const savedWorkspace = await this.workspaceRepository.save(newWorkspace);
 
-    // Thêm user vào workspace với role admin
     const workspaceMember = this.workspaceMemberRepository.create({
       userId: user.id,
       workspaceId: savedWorkspace.id,
@@ -71,7 +68,6 @@ export class WorkspaceService {
     });
     await this.workspaceMemberRepository.save(workspaceMember);
 
-    // Invalidate RBAC cache for the workspace creator
     await rbacProvider.clearCache(userId, savedWorkspace.id);
 
     return savedWorkspace;
@@ -87,6 +83,7 @@ export class WorkspaceService {
     const workspace = await this.workspaceRepository.findOne({
       where: { id, isArchived: false },
     });
+    
     if (!workspace) throw new Error('Workspace not found');
     return workspace;
   }

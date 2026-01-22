@@ -1,4 +1,3 @@
-// frontend/src/features/auth/model/useAuth.ts
 import { useCallback, useState } from "react";
 import { authService } from "@/shared/api/services/authService";
 import { tokenStorage } from "@/shared/utils/tokenStorage";

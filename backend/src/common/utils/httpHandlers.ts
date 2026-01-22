@@ -7,7 +7,6 @@ import {
   ServiceResponse,
 } from '@/common/models/serviceResponse';
 
-// Hàm để chuẩn hóa cách trả về response cho tất cả api endpoints, đảm bảo cấu trúc response đồng nhất
 export const handleServiceResponse = (
   serviceResponse: ServiceResponse<any>,
   response: Response
@@ -15,7 +14,6 @@ export const handleServiceResponse = (
   return response.status(serviceResponse.statusCode).send(serviceResponse);
 };
 
-// Middleware để validate request dựa trên schema được cung cấp
 export const validateRequest =
   (schema: z.ZodSchema) =>
   (req: Request, res: Response, next: NextFunction) => {
@@ -35,7 +33,6 @@ export const validateRequest =
       });
       next();
     } catch (err) {
-      // Kiểm tra nếu là ZodError
       if (err instanceof ZodError) {
         const errorMessage = `Invalid input: ${err.issues.map((issue) => `${issue.path.join('.')}: ${issue.message}`).join(', ')}`;
         const statusCode = StatusCodes.BAD_REQUEST;
@@ -50,7 +47,6 @@ export const validateRequest =
             )
           );
       } else {
-        // Xử lý các lỗi khác
         const errorMessage = 'Validation failed';
         const statusCode = StatusCodes.BAD_REQUEST;
         res
@@ -69,25 +65,32 @@ export const validateRequest =
 
 export const validateHandle =
   (schema: ZodObject<ZodRawShape>) =>
-  (req: Request, res: Response, next: NextFunction) => {
-    const result = schema.safeParse(req.body);
+    (req: Request, res: Response, next: NextFunction) => {
+      console.log("🔥 [DEBUG MIDDLEWARE] Đang check body:", req.body);
 
-    if (!result.success) {
-      const errorMessage = result.error.issues
-        .map((issue) => `${issue.path.join('.')}: ${issue.message}`)
-        .join(', ');
+      const result = schema.safeParse(req.body);
 
-      return res
-        .status(StatusCodes.BAD_REQUEST)
-        .json(
-          new ServiceResponse<null>(
-            ResponseStatus.Failed,
-            `Invalid body: ${errorMessage}`,
-            null,
-            StatusCodes.BAD_REQUEST
-          )
-        );
-    }
-    req.body = result.data;
-    next();
-  };
+      if (!result.success) {
+        const errorDetail = result.error.issues
+          .map((issue) => `${issue.path.join('.')}: ${issue.message}`)
+          .join(', ');
+
+        console.error("❌ [DEBUG MIDDLEWARE] Validate Thất Bại:", errorDetail);
+
+        return res
+          .status(StatusCodes.BAD_REQUEST)
+          .json(
+            new ServiceResponse<null>(
+              ResponseStatus.Failed,
+              `Invalid body: ${errorDetail}`,
+              null,
+              StatusCodes.BAD_REQUEST
+            )
+          );
+      }
+
+      console.log("✅ [DEBUG MIDDLEWARE] Validate OK -> Chuyển tiếp Controller");
+
+      req.body = result.data;
+      next();
+    };

@@ -1,4 +1,3 @@
-// frontend/src/shared/api/api-endpoint.ts
 export const API_ENDPOINTS = {
   // ========== AUTH ENDPOINTS ==========
   AUTH: {
@@ -6,11 +5,11 @@ export const API_ENDPOINTS = {
     REGISTER: '/auth/register',
     LOGOUT: '/auth/logout',
     REFRESH_TOKEN: '/auth/refreshToken',
-    FORGOT_PASSWORD: '/auth/forgot-password',
+    FORGET_PASSWORD: '/auth/forget-password',
     RESET_PASSWORD: '/auth/reset-password',
     VERIFY_EMAIL: '/auth/verify-email',
     ME: '/auth/me',
-    PROFILE: "/auth/{userId}/profile", 
+    PROFILE: "/auth/profile", 
   },
 
   // ========== USER ENDPOINTS ==========
@@ -18,9 +17,9 @@ export const API_ENDPOINTS = {
     BASE: '/users',
     BY_ID: (id: string) => `/users/${id}`,
     PROFILE: '/users/profile',
-    UPDATE_PROFILE: '/users/profile',
+    UPDATE_PROFILE: '/users/me/profile',
+    UPLOAD_AVATAR: '/users/me/avatar',
     CHANGE_PASSWORD: '/users/change-password',
-    UPLOAD_AVATAR: '/users/avatar',
     ME: '/users/me',
   },
 

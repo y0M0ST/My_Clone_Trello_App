@@ -1,7 +1,6 @@
-// frontend/src/shared/api/api-factory.ts
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import type { AxiosResponse } from "axios"
+import type { AxiosResponse, AxiosRequestConfig } from "axios"
 import apiClient from "./api-config"
 import { API_ENDPOINTS } from "./api-endpoint"
 
@@ -20,28 +19,33 @@ export interface PaginatedResponse<T> {
 }
 
 class ApiFactory {
-  async get<T = any>(url: string, params?: Record<string, any>): Promise<T> {
-    const response: AxiosResponse<T> = await apiClient.get(url, { params })
+  // Hàm get thêm config
+  async get<T = any>(url: string, config?: AxiosRequestConfig): Promise<T> {
+    const response: AxiosResponse<T> = await apiClient.get(url, config)
     return response.data
   }
 
-  async post<T = any>(url: string, data?: any): Promise<T> {
-    const response: AxiosResponse<T> = await apiClient.post(url, data)
+  // Hàm post thêm config
+  async post<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
+    const response: AxiosResponse<T> = await apiClient.post(url, data, config)
     return response.data
   }
 
-  async put<T = any>(url: string, data?: any): Promise<T> {
-    const response: AxiosResponse<T> = await apiClient.put(url, data)
+  // Hàm put thêm config 
+  async put<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
+    const response: AxiosResponse<T> = await apiClient.put(url, data, config)
     return response.data
   }
 
-  async patch<T = any>(url: string, data?: any): Promise<T> {
-    const response: AxiosResponse<T> = await apiClient.patch(url, data)
+  // Hàm patch thêm config
+  async patch<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
+    const response: AxiosResponse<T> = await apiClient.patch(url, data, config)
     return response.data
   }
 
-  async delete<T = any>(url: string): Promise<T> {
-    const response: AxiosResponse<T> = await apiClient.delete(url)
+  // Hàm delete thêm config
+  async delete<T = any>(url: string, config?: AxiosRequestConfig): Promise<T> {
+    const response: AxiosResponse<T> = await apiClient.delete(url, config)
     return response.data
   }
 

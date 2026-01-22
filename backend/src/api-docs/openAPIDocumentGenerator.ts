@@ -5,8 +5,6 @@ import {
 
 export function generateOpenAPIDocument() {
   const registry = new OpenAPIRegistry([
-    // Add more registries here as your project grows
-    // Note: Workspace API now uses JSDoc swagger instead
   ]);
 
   registry.registerComponent('securitySchemes', 'bearerAuth', {

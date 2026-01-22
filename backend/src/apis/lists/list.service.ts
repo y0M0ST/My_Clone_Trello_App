@@ -72,7 +72,6 @@ export class ListService {
   }
 
   async archiveList(listId: string) {
-    // KHÔNG cần load full entity - chỉ update
     const result = await this.listRepository.updateList(listId, {
       isArchived: true,
     } as any);
@@ -97,20 +96,17 @@ export class ListService {
   }
 
   async archiveAllCardsInList(listId: string) {
-    // Kiểm tra list tồn tại (không load cards)
     const list = await this.listRepository.findListById(listId, false);
     if (!list) {
       throw new Error('List not found');
     }
 
-    // Lấy chỉ IDs - nhanh hơn nhiều
     const cardIds = await this.listRepository.getCardIdsFromList(listId);
 
     if (cardIds.length === 0) {
       return { archivedCount: 0 };
     }
 
-    // Bulk update trong 1 query thay vì loop
     await this.listRepository.bulkArchiveCards(cardIds);
 
     return { archivedCount: cardIds.length };

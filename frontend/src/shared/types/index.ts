@@ -1,4 +1,3 @@
-// frontend/src/shared/types/index.ts
 export interface User {
   id: string;
   email: string;
@@ -20,27 +19,23 @@ export interface Workspace {
   createdAt: string;
 }
 
-// DTO for login/register responses
 export interface AuthResponse {
   accessToken: string;
   refreshToken: string;
   user: User;
 }
 
-// DTO for login request
 export interface LoginRequest {
   email: string;
   password: string;
 }
 
-// DTO for register request
 export interface RegisterRequest {
   email: string;
   password: string;
   name?: string;
 }
 
-// DTO for update user profile
 export interface UpdateUserRequest {
   name?: string;
   bio?: string;
@@ -52,7 +47,6 @@ export interface OAuthResult {
   refreshToken: string;
   user: User;
 }
-// frontend/src/shared/types/index.ts
 
 export interface Board {
   id: string
@@ -69,6 +63,6 @@ export interface Workspace {
   visibility: "private" | "public"
   updatedAt: string
   createdAt: string
-  boards?: Board[] // thêm optional
+  boards?: Board[] 
 }
 

@@ -32,7 +32,6 @@ export class BoardRepository {
     boardId: string,
     anotherBoardId: string
   ): Promise<boolean> {
-    // Tối ưu: Chỉ lấy workspaceId, không cần load relations
     const result = await this.boardRepository
       .createQueryBuilder('board')
       .select('board.workspaceId', 'workspaceId')

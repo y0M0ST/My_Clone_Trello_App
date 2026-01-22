@@ -11,42 +11,37 @@ export class EmailController {
   async requestVerifyEmail(req: Request, res: Response) {
     const { email } = req.body;
     if (!email) return res.status(400).json({ message: 'Email is required' });
+
     if (!validateEmail(email))
       return res.status(400).json({ message: 'Invalid email format' });
-    const existingEmail = await this.userRepository.findOne({
-      where: { email },
-    });
-    if (existingEmail)
-      return res.status(400).json({ message: 'Email already registered' });
+
     const lastSent = await redisClient.get(`lastSent:${email}`);
     if (lastSent) {
-      return res.status(429).json({
-        message:
-          'Too many requests. Please wait a few minutes before requesting again.',
-      });
+      return res.status(429).json({ message: 'Wait a bit before requesting again.' });
     }
+
     try {
-      await emailService.sendVerificationEmail(email);
-      await redisClient.set(`lastSent:${email}`, Date.now().toString(), {
-        EX: 60,
-      });
-      return res.status(200).json({ message: 'Verification email sent' });
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+      await emailService.sendVerificationEmail(email, otp);
+
+      await redisClient.set(`lastSent:${email}`, Date.now().toString(), { EX: 60 });
+
+      return res.status(200).json({ message: 'Verification email sent (Test OTP: ' + otp + ')' });
     } catch (error) {
-      return res
-        .status(500)
-        .json({ message: 'Failed to send verification email', error });
+      return res.status(500).json({ message: 'Failed to send email', error });
     }
   }
 
-  async verifyEmail(req: Request, res: Response) {
-    const { token } = req.query;
-    if (!token || typeof token !== 'string')
-      return res.status(400).json({ message: 'Token is required' });
-    try {
-      const email = await emailService.verifyEmailToken(token);
-      return res.status(200).json({ message: 'Email verified', email });
-    } catch (error) {
-      return res.status(500).json({ message: 'Failed to verify email', error });
-    }
-  }
+  // async verifyEmail(req: Request, res: Response) {
+  //   const { token } = req.query;
+  //   if (!token || typeof token !== 'string')
+  //     return res.status(400).json({ message: 'Token is required' });
+  //   try {
+  //     const email = await emailService.verifyEmailToken(token);
+  //     return res.status(200).json({ message: 'Email verified', email });
+  //   } catch (error) {
+  //     return res.status(500).json({ message: 'Failed to verify email', error });
+  //   }
+  // }
 }

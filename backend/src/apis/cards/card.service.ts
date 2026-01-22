@@ -26,7 +26,6 @@ export class CardService {
     }
     const boardId = list.boardId;
 
-    // Xử lý copy card
     let copyMembers = false;
     let copyLabels = false;
     let copyComments = false;
@@ -106,12 +105,10 @@ export class CardService {
     updateData: any,
     userId?: string
   ): Promise<any> {
-    // Get card with basic fields for comparison
     const oldCard = await this.cardRepository.getCardById(cardId, {});
     if (!oldCard) {
       throw new Error('Card not found');
     }
-    // Get card with members separately for notifications
     const cardWithMembers =
       await this.cardRepository.getCardWithMembers(cardId);
 
@@ -143,7 +140,6 @@ export class CardService {
       throw new Error('Card not found or update failed');
     }
 
-    // Log action với các thay đổi
     if (userId) {
       const changes: any = {};
       if (listId !== undefined && listId !== oldCard.listId)
@@ -168,7 +164,6 @@ export class CardService {
         await this.cardRepository.logUpdateAction(cardId, userId, changes);
       }
 
-      // Send notification when due date is set/changed
       if (
         changes.due &&
         cardWithMembers?.members &&
@@ -308,7 +303,6 @@ export class CardService {
     }
 
     const action = await this.cardRepository.addComment(cardId, userId, text);
-    // Send notifications to card members
     if (card.members && card.members.length > 0) {
       const memberIds = card.members.map((member) => member.id);
       await this.notificationService.createAndSendNotificationsToUsers({
@@ -370,7 +364,6 @@ export class CardService {
     let mimeType: string | undefined;
     let bytes: number | undefined;
 
-    // If file is provided, upload to Cloudinary
     if (attachmentData.file) {
       const { uploadAttachmentToCloudinary } = await import(
         '@/config/cloudinary'
@@ -399,7 +392,6 @@ export class CardService {
       }
     );
 
-    // Send notifications to card members
     if (card.members && card.members.length > 0) {
       const memberIds = card.members.map((member) => member.id);
       await this.notificationService.createAndSendNotificationsToUsers({
@@ -470,7 +462,6 @@ export class CardService {
     return attachment;
   }
 
-  // Checklist methods
   async getChecklists(
     cardId: string,
     checkItems?: boolean,
@@ -557,7 +548,6 @@ export class CardService {
     }
   }
 
-  // CheckItem methods
   async getCheckItems(
     cardId: string,
     checklistId: string,
@@ -692,6 +682,62 @@ export class CardService {
     );
     if (!result) {
       throw new Error('CheckItem not found or delete failed');
+    }
+  }
+
+  async moveCard(data: {
+    cardId: string;
+    prevColumnId: string; 
+    prevIndex: number;    
+    nextColumnId: string; 
+    nextIndex: number;   
+  }): Promise<any> {
+    const { cardId, prevColumnId, prevIndex, nextColumnId, nextIndex } = data;
+    const cardToMove = await this.cardRepository.getCardById(cardId, {});
+    if (!cardToMove) throw new Error('Card not found');
+    if (prevColumnId === nextColumnId) {
+      if (prevIndex === nextIndex) return cardToMove; 
+
+      const cardsInList = await this.cardRepository.getCardsByListId(prevColumnId);
+      const newOrderedCards = [...cardsInList];
+      const [removed] = newOrderedCards.splice(prevIndex, 1); 
+      newOrderedCards.splice(nextIndex, 0, removed); 
+      await Promise.all(
+        newOrderedCards.map((card, index) =>
+          this.cardRepository.updateCard(card.id, { position: index })
+        )
+      );
+
+      return { ...cardToMove, position: nextIndex };
+    }
+
+    else {
+      const cardsInPrevList = await this.cardRepository.getCardsByListId(prevColumnId);
+      const newPrevList = cardsInPrevList.filter(c => c.id !== cardId);
+
+      await Promise.all(
+        newPrevList.map((card, index) =>
+          this.cardRepository.updateCard(card.id, { position: index })
+        )
+      );
+
+      const cardsInNextList = await this.cardRepository.getCardsByListId(nextColumnId);
+      const newNextList = [...cardsInNextList];
+      const updatedCardData = { listId: nextColumnId };
+      newNextList.splice(nextIndex, 0, { ...cardToMove, ...updatedCardData } as any);
+      await Promise.all(
+        newNextList.map((card, index) => {
+          if (card.id === cardId) {
+            return this.cardRepository.updateCard(card.id, {
+              listId: nextColumnId,
+              position: index
+            });
+          }
+          return this.cardRepository.updateCard(card.id, { position: index });
+        })
+      );
+
+      return { ...cardToMove, listId: nextColumnId, position: nextIndex };
     }
   }
 }

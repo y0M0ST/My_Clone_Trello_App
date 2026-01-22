@@ -9,7 +9,7 @@ import { uploadBoardCoverToCloudinary } from '@/config/cloudinary';
 import { boardActivityService, BoardActivityService } from './board-activity.service';
 
 const boardService = new BoardService();
-import { UserService } from '../users/user.service'; // chỉnh đường dẫn cho đúng
+import { UserService } from '../users/user.service'; 
 const userService = new UserService();
 
 export class BoardController {
@@ -314,7 +314,7 @@ export class BoardController {
         );
       }
 
-      const newOwner = await userService.findUserById(newOwnerId); // dùng findUserById
+      const newOwner = await userService.findUserById(newOwnerId); 
       if (!newOwner) {
         return new ServiceResponse(
           ResponseStatus.Failed,
@@ -467,7 +467,6 @@ export class BoardController {
         );
       }
 
-      // 🎯 log activity (TS-10 – làm luôn ở đây luôn cho gọn)
       await boardActivityService.logActivity({
         boardId: id,
         actorId: userId,

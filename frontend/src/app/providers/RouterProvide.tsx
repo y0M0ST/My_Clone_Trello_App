@@ -1,4 +1,3 @@
-// frontend/src/app/providers/RouterProvide.tsx
 import { useEffect, type ReactNode } from "react";
 import { BrowserRouter, useNavigate } from "react-router-dom";
 
@@ -14,7 +13,6 @@ const normalizeBaseUrl = (baseUrl: string) => {
   return baseUrl.replace(/\/$/, "");
 };
 
-// Component to handle redirect after mount
 function RedirectHandler() {
   const navigate = useNavigate();
 

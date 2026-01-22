@@ -1,3 +1,4 @@
+// backend/src/apis/auth/auth.route.ts
 import { Router } from 'express';
 import { AuthController } from './auth.controller';
 import { EmailController } from '../mail/mail.controller';
@@ -9,6 +10,7 @@ import {
   LoginSchema,
   RegisterSchema,
   ResetPasswordSchema,
+  ForgetPasswordSchema,
   VerifyEmailSchema,
 } from './auth.schema';
 
@@ -49,33 +51,73 @@ route.post(
   emailController.requestVerifyEmail.bind(emailController)
 );
 
+// /**
+//  * @swagger
+//  * /auth/verify-email:
+//  *   get:
+//  *     tags:
+//  *       - Auth
+//  *     summary: Verify email using token
+//  *     description: Validate the email verification token sent to the user's email.
+//  *     parameters:
+//  *       - in: query
+//  *         name: token
+//  *         required: true
+//  *         schema:
+//  *           type: string
+//  *         description: Verification token received via email
+//  *         example: 123e4567-e89b-12d3-a456-426614174000
+//  *     responses:
+//  *       200:
+//  *         description: Email verified successfully
+//  *       400:
+//  *         description: Token is missing or invalid format
+//  *       410:
+//  *         description: Token expired
+//  *       500:
+//  *         description: Failed to verify email
+//  */
+// route.get('/verify-email', emailController.verifyEmail.bind(emailController));
+
 /**
  * @swagger
  * /auth/verify-email:
- *   get:
+ *   post:
  *     tags:
  *       - Auth
- *     summary: Verify email using token
- *     description: Validate the email verification token sent to the user's email.
- *     parameters:
- *       - in: query
- *         name: token
- *         required: true
- *         schema:
- *           type: string
- *         description: Verification token received via email
- *         example: 123e4567-e89b-12d3-a456-426614174000
+ *     summary: Verify email with OTP
+ *     description: Verify user's email using the OTP sent to their inbox
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - otp
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 example: "user@example.com"
+ *               otp:
+ *                 type: string
+ *                 example: "123456"
  *     responses:
  *       200:
  *         description: Email verified successfully
  *       400:
- *         description: Token is missing or invalid format
- *       410:
- *         description: Token expired
- *       500:
- *         description: Failed to verify email
+ *         description: Invalid OTP or Email
  */
-route.get('/verify-email', emailController.verifyEmail.bind(emailController));
+route.post(
+  '/verify-email',
+  validateHandle(VerifyEmailSchema), // ✅ Schema này phải khớp với body { email, otp }
+  async (req, res) => {
+    const serviceResponse = await AuthController.verifyEmail(req, res);
+    return handleServiceResponse(serviceResponse, res);
+  }
+);
+
 
 /**
  * @swagger
@@ -294,7 +336,7 @@ route.get('/google/callback', (req, res) => {
  */
 route.post(
   '/forget-password',
-  validateHandle(VerifyEmailSchema),
+  validateHandle(ForgetPasswordSchema), // ✅ Dùng Schema chỉ có email
   async (req, res) => {
     const serviceResponse = await AuthController.forgetPassword(req);
     return handleServiceResponse(serviceResponse, res);

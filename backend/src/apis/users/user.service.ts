@@ -40,6 +40,7 @@ export class UserService {
   }
 
   async updateProfile(
+    
     userId: string,
     dto: UpdateProfileDto
   ): Promise<User | null> {
