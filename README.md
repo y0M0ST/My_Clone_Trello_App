@@ -26,3 +26,17 @@ Trước khi chạy, hãy đảm bảo máy bạn đã cài **Node.js** và **Gi
 ```bash
 git clone https://github.com/y0M0ST/My_Clone_Trello_App.git
 cd My_Clone_Trello_App
+```
+
+### 2. Chạy dự án
+## 2.1. Backend
+```bash
+cd backend
+npm run dev
+```
+
+## 2.2. Frontend
+```bash
+cd frontend
+npm run dev
+```
