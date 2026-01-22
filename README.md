@@ -24,5 +24,5 @@ Trước khi chạy, hãy đảm bảo máy bạn đã cài **Node.js** và **Gi
 
 ### 1. Clone dự án
 ```bash
-git clone [https://github.com/y0M0ST/My_Clone_Trello_App.git](https://github.com/y0M0ST/My_Clone_Trello_App.git)
+git clone https://github.com/y0M0ST/My_Clone_Trello_App.git
 cd My_Clone_Trello_App
