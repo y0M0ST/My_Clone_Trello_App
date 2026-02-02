@@ -59,11 +59,13 @@ export const AppDataSource = new DataSource({
   ],
   migrations: ['src/migration/**/*.ts'],
   subscribers: [],
-  ssl: process.env.DB_HOST?.includes('render.com')
-    ? {
-        rejectUnauthorized: false,
-      }
-    : false,
+  ssl:
+    process.env.DB_HOST?.includes('render.com') ||
+    process.env.DB_HOST?.includes('neon.tech')
+      ? {
+          rejectUnauthorized: false,
+        }
+      : false,
   extra: {
     max: 20,
     min: 5,

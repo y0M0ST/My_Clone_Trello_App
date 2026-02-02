@@ -196,4 +196,39 @@ export class UserController {
       );
     }
   }
+
+  static async changePassword(req: Request): Promise<ServiceResponse<any>> {
+    try {
+      const userId = req.user?.userId; // Lấy ID từ token
+      const { currentPassword, newPassword } = req.body;
+
+      if (!userId) {
+        return new ServiceResponse(
+          ResponseStatus.Failed,
+          'Unauthorized',
+          null,
+          StatusCodes.UNAUTHORIZED
+        );
+      }
+
+      await userService.changePassword(userId, {
+        currentPassword,
+        newPassword,
+      });
+
+      return new ServiceResponse(
+        ResponseStatus.Success,
+        'Đổi mật khẩu thành công',
+        null,
+        StatusCodes.OK
+      );
+    } catch (error: any) {
+      return new ServiceResponse(
+        ResponseStatus.Failed,
+        error.message || 'Error changing password',
+        null,
+        StatusCodes.BAD_REQUEST
+      );
+    }
+  }
 }

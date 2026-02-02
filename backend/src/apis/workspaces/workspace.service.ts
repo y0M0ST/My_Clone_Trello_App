@@ -1,4 +1,5 @@
 import { AppDataSource } from '../../config/data-source';
+import { In } from 'typeorm';
 import { User } from '../../common/entities/user.entity';
 import {
   createWorkspaceDto,
@@ -16,6 +17,8 @@ import { redisClient } from '@/config/redisClient';
 import { rbacProvider } from '@/common/utils/rbac';
 import nodemailer from 'nodemailer';
 import { v4 as uuidv4 } from 'uuid';
+import { BoardMembers } from '../../common/entities/board-member.entity';
+import { Board } from '../../common/entities/board.entity';
 
 export class WorkspaceService {
   private workspaceRepository = AppDataSource.getRepository(Workspace);
@@ -23,6 +26,8 @@ export class WorkspaceService {
   private workspaceMemberRepository =
     AppDataSource.getRepository(WorkspaceMembers);
   private roleRepository = AppDataSource.getRepository(Role);
+  private boardMemberRepository = AppDataSource.getRepository(BoardMembers);
+  private boardRepository = AppDataSource.getRepository(Board);
   private transporter;
 
   constructor() {
@@ -83,7 +88,7 @@ export class WorkspaceService {
     const workspace = await this.workspaceRepository.findOne({
       where: { id, isArchived: false },
     });
-    
+
     if (!workspace) throw new Error('Workspace not found');
     return workspace;
   }
@@ -110,79 +115,90 @@ export class WorkspaceService {
   }
 
   async getWorkspacesByUserId(userId: string) {
-    // Sử dụng QueryBuilder với LEFT JOIN để tránh N+1 query
-    const workspaces = await this.workspaceMemberRepository
-      .createQueryBuilder('wm')
-      .leftJoinAndSelect('wm.workspace', 'workspace')
-      .leftJoinAndSelect('wm.role', 'myRole')
-      .leftJoin('workspace.workspaceMembers', 'members')
-      .leftJoin('members.user', 'memberUser')
-      .leftJoin('members.role', 'memberRole')
-      .where('wm.userId = :userId', { userId })
-      .andWhere('workspace.isArchived = :isArchived', { isArchived: false })
-      // select chỉ fields cần thiết
+    // 1. Get IDs from direct membership
+    const memberWorkspaceIds = await this.workspaceMemberRepository
+      .find({ where: { userId }, select: ['workspaceId'] })
+      .then((r) => r.map((x) => x.workspaceId));
+
+    // 2. Get IDs from board membership (indirect access)
+    const boardWorkspaceIds = await this.boardMemberRepository
+      .createQueryBuilder('bm')
+      .leftJoin('bm.board', 'board')
+      .where('bm.userId = :userId', { userId })
+      .select('board.workspaceId', 'workspaceId')
+      .distinct(true)
+      .getRawMany()
+      .then((r) => r.map((x) => x.workspaceId));
+
+    // 3. Union IDs
+    const allIds = [...new Set([...memberWorkspaceIds, ...boardWorkspaceIds])];
+
+    if (allIds.length === 0) return [];
+
+    // 4. Fetch Workspaces with details
+    const workspaces = await this.workspaceRepository
+      .createQueryBuilder('w')
+      .leftJoinAndSelect('w.workspaceMembers', 'members')
+      .leftJoinAndSelect('members.user', 'memberUser')
+      .leftJoinAndSelect('members.role', 'memberRole')
+      .where('w.id IN (:...ids)', { ids: allIds })
+      .andWhere('w.isArchived = :isArchived', { isArchived: false })
       .select([
-        'wm.id',
-        'workspace.id',
-        'workspace.title',
-        'workspace.description',
-        'workspace.visibility',
-        'workspace.isArchived',
-        'workspace.createdAt',
-        'workspace.updatedAt',
-        'myRole.id',
-        'myRole.name',
-        'members.id',
-        'members.createdAt',
-        'memberUser.id',
-        'memberUser.name',
-        'memberUser.email',
-        'memberUser.avatarUrl',
-        'memberRole.id',
-        'memberRole.name',
+        'w.id', 'w.title', 'w.description', 'w.visibility', 'w.isArchived', 'w.createdAt', 'w.updatedAt',
+        'members.id', 'members.createdAt', 'members.roleId', 'members.userId',
+        'memberUser.id', 'memberUser.name', 'memberUser.email', 'memberUser.avatarUrl',
+        'memberRole.id', 'memberRole.name'
       ])
       .getMany();
 
-    // Fetch boards riêng với query tối ưu
-    const workspaceIds = workspaces.map((wm) => wm.workspace.id);
-    const boards =
-      workspaceIds.length > 0
-        ? await this.workspaceRepository
-            .createQueryBuilder('w')
-            .leftJoinAndSelect('w.boards', 'board')
-            .where('w.id IN (:...workspaceIds)', { workspaceIds })
-            .andWhere('board.isClosed = :isClosed', { isClosed: false })
-            .select([
-              'w.id',
-              'board.id',
-              'board.title',
-              'board.description',
-              'board.coverUrl',
-              'board.visibility',
-              'board.createdAt',
-            ])
-            .getMany()
-        : [];
+    // 5. Fetch user's role in these workspaces (if any)
+    // 5. Fetch user's role in these workspaces (if any)
+    const myMemberships = await this.workspaceMemberRepository.find({
+      where: {
+        userId,
+        workspaceId: In(allIds)
+      },
+      relations: ['role']
+    });
+    // Fix: use proper FindOptions logic or just filter from fetched workspaces if loaded? 
+    // Actually, 'members' relation in 'workspaces' contains ALL members. 
+    // We can find 'myRole' from there.
 
-    // Map boards vào workspaces
+    // Fetch boards
+    const boards = await this.boardRepository
+      .createQueryBuilder('board')
+      .leftJoin('board.workspace', 'workspace')
+      .where('board.workspaceId IN (:...ids)', { ids: allIds })
+      .andWhere('board.isClosed = :isClosed', { isClosed: false })
+      .select(['board.id', 'board.title', 'board.description', 'board.coverUrl', 'board.visibility', 'board.createdAt', 'workspace.id'])
+      .getMany();
+
     const boardsMap = new Map<string, any[]>();
-    boards.forEach((w) => {
-      boardsMap.set(w.id, w.boards || []);
+    boards.forEach((b) => {
+      if (b.workspace) {
+        const wsId = b.workspace.id;
+        const current = boardsMap.get(wsId) || [];
+        current.push(b);
+        boardsMap.set(wsId, current);
+      }
     });
 
-    // Format kết quả
-    return workspaces.map((wm) => ({
-      id: wm.workspace.id,
-      title: wm.workspace.title,
-      description: wm.workspace.description,
-      visibility: wm.workspace.visibility,
-      isArchived: wm.workspace.isArchived,
-      createdAt: wm.workspace.createdAt,
-      updatedAt: wm.workspace.updatedAt,
-      myRole: wm.role,
-      boards: boardsMap.get(wm.workspace.id) || [],
-      members:
-        wm.workspace.workspaceMembers?.map((member) => ({
+    return workspaces.map(workspace => {
+      // Find my membership in this workspace
+      const myMember = workspace.workspaceMembers?.find(m => m.user?.id === userId);
+      const myRole = myMember?.role || null; // Null if no direct membership (Guest)
+
+      return {
+        id: workspace.id,
+        title: workspace.title,
+        description: workspace.description,
+        visibility: workspace.visibility,
+        isArchived: workspace.isArchived,
+        createdAt: workspace.createdAt,
+        updatedAt: workspace.updatedAt,
+        myRole: myRole,
+        boards: boardsMap.get(workspace.id) || [],
+        members: workspace.workspaceMembers?.map(member => ({
           id: member.id,
           userId: member.user?.id,
           username: member.user?.name,
@@ -190,8 +206,9 @@ export class WorkspaceService {
           avatarUrl: member.user?.avatarUrl,
           role: member.role,
           joinedAt: member.createdAt,
-        })) || [],
-    }));
+        })) || []
+      };
+    });
   }
 
   // Get archived workspaces by user ID
@@ -232,20 +249,20 @@ export class WorkspaceService {
     const boards =
       workspaceIds.length > 0
         ? await this.workspaceRepository
-            .createQueryBuilder('w')
-            .leftJoinAndSelect('w.boards', 'board')
-            .where('w.id IN (:...workspaceIds)', { workspaceIds })
-            .select([
-              'w.id',
-              'board.id',
-              'board.title',
-              'board.description',
-              'board.coverUrl',
-              'board.visibility',
-              'board.isClosed',
-              'board.createdAt',
-            ])
-            .getMany()
+          .createQueryBuilder('w')
+          .leftJoinAndSelect('w.boards', 'board')
+          .where('w.id IN (:...workspaceIds)', { workspaceIds })
+          .select([
+            'w.id',
+            'board.id',
+            'board.title',
+            'board.description',
+            'board.coverUrl',
+            'board.visibility',
+            'board.isClosed',
+            'board.createdAt',
+          ])
+          .getMany()
         : [];
 
     const boardsMap = new Map<string, any[]>();

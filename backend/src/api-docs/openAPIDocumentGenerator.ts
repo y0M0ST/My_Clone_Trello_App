@@ -4,8 +4,7 @@ import {
 } from '@asteasolutions/zod-to-openapi';
 
 export function generateOpenAPIDocument() {
-  const registry = new OpenAPIRegistry([
-  ]);
+  const registry = new OpenAPIRegistry([]);
 
   registry.registerComponent('securitySchemes', 'bearerAuth', {
     type: 'http',

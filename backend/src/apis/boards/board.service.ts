@@ -90,12 +90,13 @@ export class BoardService {
       where: { id },
       relations: [
         'workspace',
-        'boardMembers',      
-        'boardMembers.user',  
+        'boardMembers',
+        'boardMembers.user',
+        'boardMembers.role',
         'lists',
         'lists.cards',
         'lists.cards.labels',
-        'lists.cards.members', 
+        'lists.cards.members',
       ],
       select: {
         id: true,
@@ -114,13 +115,13 @@ export class BoardService {
         },
         boardMembers: {
           id: true,
-          roleId: true, 
+          roleId: true,
           user: {
             id: true,
             email: true,
-            name: true,     
-            avatarUrl: true, 
-          }
+            name: true,
+            avatarUrl: true,
+          },
         },
         lists: {
           id: true,
@@ -133,31 +134,34 @@ export class BoardService {
             position: true,
             coverUrl: true,
             description: true,
-          }
-        }
+          },
+        },
       },
       order: {
         lists: {
-          position: 'ASC', 
-        }
-      }
+          position: 'ASC',
+        },
+      },
     });
 
     if (!board) throw new Error('Board not found');
 
     const transformedBoard = {
       ...board,
-      members: board.boardMembers.map(bm => ({
+      members: board.boardMembers.map((bm) => ({
         id: bm.user.id,
         name: bm.user.name,
         email: bm.user.email,
         avatarUrl: bm.user.avatarUrl,
-        roleId: bm.roleId, 
+        roleId: bm.roleId,
+        roleName: bm.role.name,
       })),
-      lists: board.lists.map(list => ({
+      lists: board.lists.map((list) => ({
         ...list,
-        cards: list.cards ? list.cards.sort((a: any, b: any) => a.position - b.position) : []
-      }))
+        cards: list.cards
+          ? list.cards.sort((a: any, b: any) => a.position - b.position)
+          : [],
+      })),
     };
 
     return transformedBoard;
@@ -200,7 +204,7 @@ export class BoardService {
     if (!board) throw new Error('Board not found');
     if (!currentMember) throw new Error('You are not a member of this board');
 
-    const currentRoleName = currentMember.role.name as string;
+    const currentRoleName = currentMember.role.name;
 
     if (!this.canCurrentUserManageMembers(board, currentRoleName)) {
       if (board.memberManagePolicy === 'admins_only') {
@@ -212,7 +216,6 @@ export class BoardService {
         'Only board owner, admin or member can manage members when memberManagePolicy=all_members'
       );
     }
-
 
     if (existingMember)
       throw new Error('User is already a member of this board');
@@ -251,7 +254,7 @@ export class BoardService {
       boardTitle: board.title,
       inviterName: currentMember.user.name,
       roleName: role.name,
-      link: `${process.env.BACKEND_URL}/boards/${board.id}`,
+      link: `${process.env.FRONTEND_URL || process.env.BACKEND_URL}/boards/${board.id}`,
     });
 
     return {
@@ -357,10 +360,7 @@ export class BoardService {
 
   private canCurrentUserManageMembers(board: Board, roleName: string): boolean {
     if (board.memberManagePolicy === 'admins_only') {
-      return (
-        roleName === ROLES.BOARD_OWNER ||
-        roleName === ROLES.BOARD_ADMIN
-      );
+      return roleName === ROLES.BOARD_OWNER || roleName === ROLES.BOARD_ADMIN;
     }
 
     if (board.memberManagePolicy === 'all_members') {
@@ -370,12 +370,8 @@ export class BoardService {
         roleName === ROLES.BOARD_MEMBER
       );
     }
-    return (
-      roleName === ROLES.BOARD_OWNER ||
-      roleName === ROLES.BOARD_ADMIN
-    );
+    return roleName === ROLES.BOARD_OWNER || roleName === ROLES.BOARD_ADMIN;
   }
-
 
   async getBoardOwner(boardId: string) {
     const ownerRole = await this.roleRepository.findOne({
@@ -407,7 +403,7 @@ export class BoardService {
     const currentOwner = await this.boardMemberRepository.findOne({
       where: { boardId, roleId: ownerRole.id },
     });
-    if (!currentOwner) throw new Error('Board owner not found');    
+    if (!currentOwner) throw new Error('Board owner not found');
     if (currentOwner.userId === newOwnerId) {
       return this.boardRepository.findOne({
         where: { id: boardId },
@@ -467,17 +463,28 @@ export class BoardService {
       workspaceMembersCanEditAndJoin?: boolean;
     }
   ) {
-    const board = await this.boardRepository.findOne({ where: { id: boardId } });
+    const board = await this.boardRepository.findOne({
+      where: { id: boardId },
+    });
     if (!board) throw new Error('Board not found');
 
     const changedFields: Record<string, { old: any; new: any }> = {};
 
-    if (settings.visibility !== undefined && settings.visibility !== board.visibility) {
-      changedFields.visibility = { old: board.visibility, new: settings.visibility };
+    if (
+      settings.visibility !== undefined &&
+      settings.visibility !== board.visibility
+    ) {
+      changedFields.visibility = {
+        old: board.visibility,
+        new: settings.visibility,
+      };
       board.visibility = settings.visibility;
     }
 
-    if (settings.coverUrl !== undefined && settings.coverUrl !== board.coverUrl) {
+    if (
+      settings.coverUrl !== undefined &&
+      settings.coverUrl !== board.coverUrl
+    ) {
       changedFields.coverUrl = { old: board.coverUrl, new: settings.coverUrl };
       board.coverUrl = settings.coverUrl;
     }
@@ -493,7 +500,10 @@ export class BoardService {
       board.memberManagePolicy = settings.memberManagePolicy;
     }
 
-    if (settings.commentPolicy !== undefined && settings.commentPolicy !== board.commentPolicy) {
+    if (
+      settings.commentPolicy !== undefined &&
+      settings.commentPolicy !== board.commentPolicy
+    ) {
       changedFields.commentPolicy = {
         old: board.commentPolicy,
         new: settings.commentPolicy,
@@ -503,13 +513,15 @@ export class BoardService {
 
     if (
       settings.workspaceMembersCanEditAndJoin !== undefined &&
-      settings.workspaceMembersCanEditAndJoin !== board.workspaceMembersCanEditAndJoin
+      settings.workspaceMembersCanEditAndJoin !==
+      board.workspaceMembersCanEditAndJoin
     ) {
       changedFields.workspaceMembersCanEditAndJoin = {
         old: board.workspaceMembersCanEditAndJoin,
         new: settings.workspaceMembersCanEditAndJoin,
       };
-      board.workspaceMembersCanEditAndJoin = settings.workspaceMembersCanEditAndJoin;
+      board.workspaceMembersCanEditAndJoin =
+        settings.workspaceMembersCanEditAndJoin;
     }
 
     if (Object.keys(changedFields).length === 0) {
@@ -519,8 +531,6 @@ export class BoardService {
     const saved = await this.boardRepository.save(board);
     return { board: saved, changedFields };
   }
-
-
 
   async closeBoard(id: string) {
     const board = await this.boardRepository.findOne({
@@ -550,7 +560,9 @@ export class BoardService {
   }
 
   async updateBoardCover(boardId: string, coverUrl: string) {
-    const board = await this.boardRepository.findOne({ where: { id: boardId } });
+    const board = await this.boardRepository.findOne({
+      where: { id: boardId },
+    });
     if (!board) throw new Error('Board not found');
     board.coverUrl = coverUrl;
     return await this.boardRepository.save(board);
@@ -581,7 +593,9 @@ export class BoardService {
     userIdToRemove: string,
     currentUserId: string
   ) {
-    const board = await this.boardRepository.findOne({ where: { id: boardId } });
+    const board = await this.boardRepository.findOne({
+      where: { id: boardId },
+    });
     if (!board) throw new Error('Board not found');
 
     const currentMember = await this.boardMemberRepository.findOne({
@@ -591,7 +605,7 @@ export class BoardService {
 
     if (!currentMember) throw new Error('You are not a member of this board');
 
-    const currentRoleName = currentMember.role.name as string;
+    const currentRoleName = currentMember.role.name;
 
     if (!this.canCurrentUserManageMembers(board, currentRoleName)) {
       if (board.memberManagePolicy === 'admins_only') {
@@ -676,10 +690,9 @@ export class BoardService {
     }
 
     if (filters.memberId) {
-      qb.innerJoin('card.members', 'member').andWhere(
-        'member.id = :memberId',
-        { memberId: filters.memberId }
-      );
+      qb.innerJoin('card.members', 'member').andWhere('member.id = :memberId', {
+        memberId: filters.memberId,
+      });
     } else {
       qb.leftJoinAndSelect('card.members', 'member');
     }
@@ -706,5 +719,4 @@ export class BoardService {
 
     return cards;
   }
-
 }

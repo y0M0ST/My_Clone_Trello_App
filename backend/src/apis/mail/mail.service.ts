@@ -12,7 +12,7 @@ export class EmailService {
 
   constructor() {
     this.transporter = nodemailer.createTransport({
-      service: 'gmail', 
+      service: 'gmail',
       host: 'smtp.gmail.com',
       port: 587,
       auth: {
@@ -23,7 +23,6 @@ export class EmailService {
   }
 
   async sendVerificationEmail(email: string, otp: string) {
-
     await this.transporter.sendMail({
       from: `"TrelloClone" <${process.env.SMTP_USER}>`,
       to: email,
@@ -55,13 +54,13 @@ export class EmailService {
           `,
       });
     } catch (error) {
-      throw error; 
+      throw error;
     }
   }
 
   async sendBoardInvitationEmail(options: BoardInvitationEmailOptions) {
     const { to, boardTitle, inviterName, roleName, link } = options;
-    const boardLink = link || `${process.env.BACKEND_URL}/boards`;
+    const boardLink = link || `${process.env.FRONTEND_URL || process.env.BACKEND_URL}/boards`;
 
     await this.transporter.sendMail({
       from: `"TrelloClone" <${process.env.SMTP_USER}>`,

@@ -660,16 +660,11 @@ export class CardController {
 
   static async moveCard(req: Request): Promise<ServiceResponse> {
     try {
-      const {
-        cardId,
-        prevColumnId,
-        prevIndex,
-        nextColumnId,
-        nextIndex
-      } = req.body;
+      const { cardId, prevColumnId, prevIndex, nextColumnId, nextIndex } =
+        req.body;
 
       if (!cardId || !nextColumnId) {
-        throw new Error("Missing required fields for moving card");
+        throw new Error('Missing required fields for moving card');
       }
 
       const result = await cardService.moveCard({
@@ -677,7 +672,7 @@ export class CardController {
         prevColumnId,
         prevIndex,
         nextColumnId,
-        nextIndex
+        nextIndex,
       });
 
       return new ServiceResponse(

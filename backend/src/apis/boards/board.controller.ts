@@ -6,10 +6,13 @@ import {
 } from '@/common/models/serviceResponse';
 import { StatusCodes } from 'http-status-codes';
 import { uploadBoardCoverToCloudinary } from '@/config/cloudinary';
-import { boardActivityService, BoardActivityService } from './board-activity.service';
+import {
+  boardActivityService,
+  BoardActivityService,
+} from './board-activity.service';
 
 const boardService = new BoardService();
-import { UserService } from '../users/user.service'; 
+import { UserService } from '../users/user.service';
 const userService = new UserService();
 
 export class BoardController {
@@ -74,7 +77,7 @@ export class BoardController {
 
   static async findOne(req: Request): Promise<ServiceResponse<any>> {
     try {
-      const board = await boardService.getBoardById(req.params.id);
+      const board = await boardService.getBoardById(req.params.id as string);
       return new ServiceResponse(
         ResponseStatus.Success,
         'Board retrieved successfully',
@@ -93,7 +96,7 @@ export class BoardController {
 
   static async update(req: Request): Promise<ServiceResponse<any>> {
     try {
-      const board = await boardService.updateBoard(req.params.id, req.body);
+      const board = await boardService.updateBoard(req.params.id as string, req.body);
       return new ServiceResponse(
         ResponseStatus.Success,
         'Board updated successfully',
@@ -112,7 +115,7 @@ export class BoardController {
 
   static async closeBoard(req: Request): Promise<ServiceResponse<any>> {
     try {
-      const board = await boardService.closeBoard(req.params.id);
+      const board = await boardService.closeBoard(req.params.id as string);
       return new ServiceResponse(
         ResponseStatus.Success,
         'Board closed successfully',
@@ -131,7 +134,7 @@ export class BoardController {
 
   static async reopenBoard(req: Request): Promise<ServiceResponse<any>> {
     try {
-      const board = await boardService.reopenBoard(req.params.id);
+      const board = await boardService.reopenBoard(req.params.id as string);
       return new ServiceResponse(
         ResponseStatus.Success,
         'Board reopened successfully',
@@ -150,7 +153,7 @@ export class BoardController {
 
   static async addMemberToBoard(req: Request): Promise<ServiceResponse<any>> {
     try {
-      const boardId = req.params.id;
+      const boardId = req.params.id as string;
       const currentUserId = req.user?.userId;
       const data = req.body;
       const result = await boardService.addMemberToBoard(
@@ -206,7 +209,7 @@ export class BoardController {
     req: Request
   ): Promise<ServiceResponse<any>> {
     try {
-      const board = await boardService.deleteBoardPermanently(req.params.id);
+      const board = await boardService.deleteBoardPermanently(req.params.id as string);
       return new ServiceResponse(
         ResponseStatus.Success,
         'Board deleted permanently',
@@ -227,7 +230,7 @@ export class BoardController {
   static async createLinkShareBoard(
     req: Request
   ): Promise<ServiceResponse<any>> {
-    const boardId = req.params.id;
+    const boardId = req.params.id as string;
     const currentUserId = req.user?.userId;
     try {
       const link = await boardService.createLinkShareBoard(
@@ -253,7 +256,7 @@ export class BoardController {
   static async deleteLinkShareBoard(
     req: Request
   ): Promise<ServiceResponse<any>> {
-    const boardId = req.params.id;
+    const boardId = req.params.id as string;
     const currentUserId = req.user?.userId;
     try {
       await boardService.deleteLinkShareBoard(boardId, currentUserId);
@@ -274,8 +277,8 @@ export class BoardController {
   }
 
   static async JoinBoardByLink(req: Request): Promise<ServiceResponse<any>> {
-    const boardId = req.params.id;
-    const inviteToken = req.params.inviteToken;
+    const boardId = req.params.id as string;
+    const inviteToken = req.params.inviteToken as string;
     const currentUserId = req.user?.userId;
     try {
       const member = await boardService.JoinBoardByLink(
@@ -301,7 +304,7 @@ export class BoardController {
 
   static async transferOwnership(req: Request): Promise<ServiceResponse<any>> {
     try {
-      const boardId = req.params.id;
+      const boardId = req.params.id as string;
       const { newOwnerId } = req.body;
 
       const currentOwner = await boardService.getBoardOwner(boardId);
@@ -314,7 +317,7 @@ export class BoardController {
         );
       }
 
-      const newOwner = await userService.findUserById(newOwnerId); 
+      const newOwner = await userService.findUserById(newOwnerId);
       if (!newOwner) {
         return new ServiceResponse(
           ResponseStatus.Failed,
@@ -347,7 +350,7 @@ export class BoardController {
 
   static async updateSettings(req: Request): Promise<ServiceResponse<any>> {
     try {
-      const { id } = req.params;
+      const id = req.params.id as string;
       const {
         visibility,
         coverUrl,
@@ -407,7 +410,12 @@ export class BoardController {
 
       // validate commentPolicy
       if (commentPolicy !== undefined) {
-        const validCommentPolicies = ['disabled', 'members', 'workspace', 'anyone'];
+        const validCommentPolicies = [
+          'disabled',
+          'members',
+          'workspace',
+          'anyone',
+        ];
         if (!validCommentPolicies.includes(commentPolicy)) {
           return new ServiceResponse(
             ResponseStatus.Failed,
@@ -429,7 +437,8 @@ export class BoardController {
             StatusCodes.BAD_REQUEST
           );
         }
-        settings.workspaceMembersCanEditAndJoin = workspaceMembersCanEditAndJoin;
+        settings.workspaceMembersCanEditAndJoin =
+          workspaceMembersCanEditAndJoin;
       }
 
       if (Object.keys(settings).length === 0) {
@@ -441,7 +450,7 @@ export class BoardController {
         );
       }
 
-      const userId = req.user?.userId as string;
+      const userId = req.user?.userId;
       const isAdmin = await boardService.checkBoardAdmin(id, userId);
       if (!isAdmin) {
         return new ServiceResponse(
@@ -452,7 +461,10 @@ export class BoardController {
         );
       }
 
-      const { board, changedFields } = await boardService.updateBoardSettings(id, settings);
+      const { board, changedFields } = await boardService.updateBoardSettings(
+        id,
+        settings
+      );
 
       // Không có field nào thay đổi
       if (!changedFields || Object.keys(changedFields).length === 0) {
@@ -494,8 +506,8 @@ export class BoardController {
 
   static async updateCover(req: Request): Promise<ServiceResponse<any>> {
     try {
-      const { id } = req.params;
-      const userId = req.user?.userId as string;
+      const id = req.params.id as string;
+      const userId = req.user?.userId;
 
       const isAdmin = await boardService.checkBoardAdmin(id, userId);
       if (!isAdmin) {
@@ -507,7 +519,7 @@ export class BoardController {
         );
       }
 
-      const file = req.file as Express.Multer.File | undefined;
+      const file = req.file;
       if (!file) {
         return new ServiceResponse(
           ResponseStatus.Failed,
@@ -519,9 +531,12 @@ export class BoardController {
 
       const coverUrl = await uploadBoardCoverToCloudinary(file);
 
-      const { board, changedFields } = await boardService.updateBoardSettings(id, {
-        coverUrl,
-      });
+      const { board, changedFields } = await boardService.updateBoardSettings(
+        id,
+        {
+          coverUrl,
+        }
+      );
 
       await boardActivityService.logActivity({
         boardId: id,
@@ -548,11 +563,10 @@ export class BoardController {
     }
   }
 
-
   static async getMembers(req: Request): Promise<ServiceResponse<any>> {
     //Hàm ni dùng để lấy ds thành viên trong board
     try {
-      const boardId = req.params.id;
+      const boardId = req.params.id as string;
       const members = await boardService.getBoardMembers(boardId);
 
       return new ServiceResponse(
@@ -575,8 +589,8 @@ export class BoardController {
     req: Request
   ): Promise<ServiceResponse<any>> {
     try {
-      const boardId = req.params.id;
-      const userIdToRemove = req.params.userId;
+      const boardId = req.params.id as string;
+      const userIdToRemove = req.params.userId as string;
       const currentUserId = req.user?.userId;
 
       if (!userIdToRemove) {
@@ -692,8 +706,6 @@ export class BoardController {
     }
   }
 
-
-
   static async getActivity(req: Request): Promise<ServiceResponse<any>> {
     try {
       const boardId = (req.params.id ||
@@ -710,9 +722,15 @@ export class BoardController {
       }
 
       const page = req.query.page ? parseInt(req.query.page as string, 10) : 1;
-      const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 20;
+      const limit = req.query.limit
+        ? parseInt(req.query.limit as string, 10)
+        : 20;
 
-      const result = await boardActivityService.getBoardActivity(boardId, page, limit);
+      const result = await boardActivityService.getBoardActivity(
+        boardId,
+        page,
+        limit
+      );
 
       return new ServiceResponse(
         ResponseStatus.Success,
@@ -729,5 +747,4 @@ export class BoardController {
       );
     }
   }
-
 }

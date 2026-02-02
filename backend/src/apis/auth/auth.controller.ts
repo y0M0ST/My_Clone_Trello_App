@@ -15,30 +15,50 @@ export class AuthController {
   static async register(req: Request): Promise<ServiceResponse<any>> {
     const data = req.body;
     if (!data.name || !data.email || !data.password) {
-      return new ServiceResponse(ResponseStatus.Failed, 'All fields are required', null, StatusCodes.BAD_REQUEST);
+      return new ServiceResponse(
+        ResponseStatus.Failed,
+        'All fields are required',
+        null,
+        StatusCodes.BAD_REQUEST
+      );
     }
     if (data.password.length < 6) {
-      return new ServiceResponse(ResponseStatus.Failed, 'Password must be at least 6 characters', null, StatusCodes.BAD_REQUEST);
+      return new ServiceResponse(
+        ResponseStatus.Failed,
+        'Password must be at least 6 characters',
+        null,
+        StatusCodes.BAD_REQUEST
+      );
     }
 
     try {
       const result = await authService.register(data);
       return new ServiceResponse(
         ResponseStatus.Success,
-        'Register successfully', 
+        'Register successfully',
         result,
         StatusCodes.CREATED
       );
     } catch (error: any) {
-      return new ServiceResponse(ResponseStatus.Failed, error.message, null, StatusCodes.BAD_REQUEST);
+      return new ServiceResponse(
+        ResponseStatus.Failed,
+        error.message,
+        null,
+        StatusCodes.BAD_REQUEST
+      );
     }
   }
 
-  static async verifyEmail(req: Request, res: Response): Promise<ServiceResponse<any>> {
+  static async verifyEmail(req: Request): Promise<ServiceResponse<any>> {
     const { email, otp } = req.body;
 
     if (!email || !otp) {
-      return new ServiceResponse(ResponseStatus.Failed, 'Email and OTP are required', null, StatusCodes.BAD_REQUEST);
+      return new ServiceResponse(
+        ResponseStatus.Failed,
+        'Email and OTP are required',
+        null,
+        StatusCodes.BAD_REQUEST
+      );
     }
 
     try {
@@ -166,7 +186,7 @@ export class AuthController {
 
   static async forgetPassword(req: Request): Promise<ServiceResponse<any>> {
     const { email } = req.body;
-    console.log("🔥 Đang yêu cầu reset pass cho:", email);
+    console.log('🔥 Đang yêu cầu reset pass cho:', email);
     const lastSentRequestForgotPassword = await redisClient.get(
       `lastSentRequestForgotPassword:${email}`
     );
@@ -179,9 +199,9 @@ export class AuthController {
       );
     }
     try {
-      console.log("🚀 Bắt đầu gửi mail...");
+      console.log('🚀 Bắt đầu gửi mail...');
       await authService.forgetPassword(email);
-      console.log("✅ Gửi mail thành công!  ");
+      console.log('✅ Gửi mail thành công!  ');
       await redisClient.set(
         `lastSentRequestForgotPassword:${email}`,
         Date.now().toString(),
@@ -194,7 +214,7 @@ export class AuthController {
         StatusCodes.OK
       );
     } catch (error) {
-      console.error("❌ Lỗi gửi mail:", error);
+      console.error('❌ Lỗi gửi mail:', error);
       return new ServiceResponse(
         ResponseStatus.Failed,
         error.message,

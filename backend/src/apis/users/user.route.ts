@@ -127,4 +127,36 @@ route.patch(
   }
 );
 
+/**
+ * @swagger
+ * /users/change-password:
+ *   patch:
+ *     tags:
+ *       - Users
+ *     summary: Change password
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - currentPassword
+ *               - newPassword
+ *             properties:
+ *               currentPassword:
+ *                 type: string
+ *               newPassword:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Password changed successfully
+ */
+route.patch('/change-password', authenticateJWT, async (req, res) => {
+  const serviceResponse = await UserController.changePassword(req);
+  return handleServiceResponse(serviceResponse, res);
+});
+
 export default route;

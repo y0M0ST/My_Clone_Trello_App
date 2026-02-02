@@ -1,8 +1,6 @@
 import { Router } from 'express';
 import { CommentController } from './comment.controller';
-import {
-    handleServiceResponse,
-} from '@/common/utils/httpHandlers';
+import { handleServiceResponse } from '@/common/utils/httpHandlers';
 import authenticateJWT from '@/common/middleware/authentication';
 
 const route = Router();
@@ -38,8 +36,8 @@ const route = Router();
  *         description: Forbidden by commentPolicy
  */
 route.post('/', authenticateJWT, async (req, res) => {
-    const serviceResponse = await CommentController.create(req);
-    return handleServiceResponse(serviceResponse, res);
+  const serviceResponse = await CommentController.create(req);
+  return handleServiceResponse(serviceResponse, res);
 });
 
 /**
@@ -63,8 +61,8 @@ route.post('/', authenticateJWT, async (req, res) => {
  *         description: List of comments
  */
 route.get('/card/:cardId', authenticateJWT, async (req, res) => {
-    const serviceResponse = await CommentController.listByCard(req);
-    return handleServiceResponse(serviceResponse, res);
+  const serviceResponse = await CommentController.listByCard(req);
+  return handleServiceResponse(serviceResponse, res);
 });
 
 /**
@@ -101,8 +99,8 @@ route.get('/card/:cardId', authenticateJWT, async (req, res) => {
  *         description: Forbidden
  */
 route.put('/:id', authenticateJWT, async (req, res) => {
-    const serviceResponse = await CommentController.update(req);
-    return handleServiceResponse(serviceResponse, res);
+  const serviceResponse = await CommentController.update(req);
+  return handleServiceResponse(serviceResponse, res);
 });
 
 /**
@@ -128,8 +126,8 @@ route.put('/:id', authenticateJWT, async (req, res) => {
  *         description: Forbidden
  */
 route.delete('/:id', authenticateJWT, async (req, res) => {
-    const serviceResponse = await CommentController.delete(req);
-    return handleServiceResponse(serviceResponse, res);
+  const serviceResponse = await CommentController.delete(req);
+  return handleServiceResponse(serviceResponse, res);
 });
 
 export default route;

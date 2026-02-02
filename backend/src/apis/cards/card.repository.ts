@@ -1164,7 +1164,7 @@ export class CardRepository {
 
     return await cardRepo.find({
       where: { listId },
-      order: { position: 'ASC' }, 
+      order: { position: 'ASC' },
     });
   }
 }

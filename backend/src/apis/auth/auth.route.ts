@@ -118,7 +118,6 @@ route.post(
   }
 );
 
-
 /**
  * @swagger
  * /auth/register:

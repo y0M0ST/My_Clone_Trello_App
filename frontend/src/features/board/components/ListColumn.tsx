@@ -4,7 +4,7 @@ import { cardApi } from "@/shared/api/card.api";
 import { listApi } from "@/shared/api/list.api";
 import { CardItem } from "./CardItem";
 import { Button } from "@/shared/ui/button";
-import { Input } from "@/shared/ui/input"; 
+import { Input } from "@/shared/ui/input";
 import { Textarea } from "@/shared/ui/textarea";
 import {
     MoreHorizontal,
@@ -13,8 +13,7 @@ import {
     Pencil,
     Copy,
     ArrowRightLeft,
-    Archive,
-    Trash2
+    Archive
 } from "lucide-react";
 import { toast } from "sonner";
 import { useSortable } from "@dnd-kit/sortable";
@@ -33,9 +32,17 @@ import {
 interface Props {
     list: List;
     onReload: () => void;
+    readonly?: boolean;
+    onCardClick?: (card: Card) => void;
 }
 
-export const ListColumn = ({ list, onReload }: Props) => {
+export const ListColumn = ({ list, onReload, readonly, onCardClick }: Props) => {
+    // ...
+    // (We need to keep the existing hooks and logic, just updating the prop and usage)
+    // Actually, replace_file_content is for contiguous block. I need to be careful not to delete hooks.
+    // I will use multiple smaller replacements or one careful one if the file structure permits.
+    // The previous view showed hooks are at the top. I can replace the interface and component signature.
+    // And then the usage of CardItem.
     const {
         attributes,
         listeners,
@@ -45,13 +52,13 @@ export const ListColumn = ({ list, onReload }: Props) => {
         isDragging
     } = useSortable({
         id: list.id,
-        data: { ...list } 
+        data: { ...list }
     });
 
     const style = {
         transform: CSS.Translate.toString(transform),
         transition,
-        opacity: isDragging ? 0.5 : 1, 
+        opacity: isDragging ? 0.5 : 1,
     };
 
     const [isAddingCard, setIsAddingCard] = useState(false);
@@ -87,7 +94,7 @@ export const ListColumn = ({ list, onReload }: Props) => {
             onReload();
         } catch (error) {
             toast.error("Lỗi đổi tên danh sách");
-            setListTitle(list.title); 
+            setListTitle(list.title);
         } finally {
             setIsRenaming(false);
         }
@@ -115,81 +122,84 @@ export const ListColumn = ({ list, onReload }: Props) => {
                 <div
                     className="flex items-center justify-between px-4 pt-3 pb-2 cursor-grab active:cursor-grabbing"
                     {...attributes}
-                    {...listeners} 
+                    {...listeners}
                 >
-                    {isRenaming ? (
+                    {isRenaming && !readonly ? (
                         <Input
                             value={listTitle}
                             onChange={(e) => setListTitle(e.target.value)}
-                            onBlur={handleRenameList} 
+                            onBlur={handleRenameList}
                             onKeyDown={(e) => e.key === "Enter" && handleRenameList()}
                             autoFocus
                             className="h-8 text-sm font-semibold bg-white"
                         />
                     ) : (
                         <h3
-                            onClick={() => setIsRenaming(true)} 
-                            className="font-semibold text-sm text-gray-700 w-full cursor-pointer px-1 py-1 rounded hover:bg-gray-200 truncate"
+                            onClick={() => !readonly && setIsRenaming(true)}
+                            className={`font-semibold text-sm text-gray-700 w-full px-1 py-1 rounded truncate ${!readonly ? 'cursor-pointer hover:bg-gray-200' : ''}`}
                         >
                             {list.title}
                         </h3>
                     )}
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-gray-300 ml-1">
-                                <MoreHorizontal className="h-4 w-4 text-gray-500" />
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="start" className="w-64">
-                            <DropdownMenuLabel className="text-xs font-normal text-gray-500 uppercase tracking-wider">
-                                Thao tác danh sách
-                            </DropdownMenuLabel>
-                            <DropdownMenuSeparator />
 
-                            <DropdownMenuItem onClick={() => setIsRenaming(true)}>
-                                <Pencil className="mr-2 h-4 w-4" />
-                                <span>Đổi tên danh sách</span>
-                            </DropdownMenuItem>
+                    {!readonly && (
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-gray-300 ml-1">
+                                    <MoreHorizontal className="h-4 w-4 text-gray-500" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="start" className="w-64">
+                                <DropdownMenuLabel className="text-xs font-normal text-gray-500 uppercase tracking-wider">
+                                    Thao tác danh sách
+                                </DropdownMenuLabel>
+                                <DropdownMenuSeparator />
 
-                            <DropdownMenuItem onClick={() => setIsAddingCard(true)}>
-                                <Plus className="mr-2 h-4 w-4" />
-                                <span>Thêm thẻ mới...</span>
-                            </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setIsRenaming(true)}>
+                                    <Pencil className="mr-2 h-4 w-4" />
+                                    <span>Đổi tên danh sách</span>
+                                </DropdownMenuItem>
 
-                            <DropdownMenuItem onClick={() => toast.info("Tính năng đang phát triển")}>
-                                <Copy className="mr-2 h-4 w-4" />
-                                <span>Sao chép danh sách</span>
-                            </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setIsAddingCard(true)}>
+                                    <Plus className="mr-2 h-4 w-4" />
+                                    <span>Thêm thẻ mới...</span>
+                                </DropdownMenuItem>
 
-                            <DropdownMenuItem onClick={() => toast.info("Tính năng đang phát triển")}>
-                                <ArrowRightLeft className="mr-2 h-4 w-4" />
-                                <span>Di chuyển danh sách</span>
-                            </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => toast.info("Tính năng đang phát triển")}>
+                                    <Copy className="mr-2 h-4 w-4" />
+                                    <span>Sao chép danh sách</span>
+                                </DropdownMenuItem>
 
-                            <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => toast.info("Tính năng đang phát triển")}>
+                                    <ArrowRightLeft className="mr-2 h-4 w-4" />
+                                    <span>Di chuyển danh sách</span>
+                                </DropdownMenuItem>
 
-                            <DropdownMenuItem
-                                onClick={handleArchiveAllCards}
-                                className="text-red-600 focus:text-red-600 focus:bg-red-50"
-                            >
-                                <Archive className="mr-2 h-4 w-4" />
-                                <span>Lưu trữ tất cả thẻ</span>
-                            </DropdownMenuItem>
+                                <DropdownMenuSeparator />
 
-                        </DropdownMenuContent>
-                    </DropdownMenu>
+                                <DropdownMenuItem
+                                    onClick={handleArchiveAllCards}
+                                    className="text-red-600 focus:text-red-600 focus:bg-red-50"
+                                >
+                                    <Archive className="mr-2 h-4 w-4" />
+                                    <span>Lưu trữ tất cả thẻ</span>
+                                </DropdownMenuItem>
+
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    )}
                 </div>
 
                 <div className="px-2 flex flex-col gap-2 overflow-y-auto mx-1 custom-scrollbar min-h-[10px]">
                     <SortableContext items={cardIds} strategy={verticalListSortingStrategy}>
                         {list.cards?.map((card) => (
-                            <CardItem key={card.id} card={card} onReload={onReload} />
+                            <CardItem key={card.id} card={card} onReload={onReload} onClick={() => onCardClick?.(card)} />
                         ))}
                     </SortableContext>
                 </div>
 
                 <div className="px-2 pt-2">
-                    {isAddingCard ? (
+                    {!readonly && (isAddingCard ? (
                         <div className="fade-in">
                             <Textarea
                                 autoFocus
@@ -216,7 +226,7 @@ export const ListColumn = ({ list, onReload }: Props) => {
                         >
                             <Plus className="h-4 w-4 mr-2" /> Thêm thẻ
                         </Button>
-                    )}
+                    ))}
                 </div>
 
             </div>

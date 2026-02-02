@@ -1,37 +1,39 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>SSE Test</title>
-</head>
-<body>
-  <h1>SSE Notifications Test</h1>
-  <div id="notifications"></div>
-  
-  <script>
-    const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJlM2ZjN2I0Ny1iYWFmLTRhMTYtYTI0OS0xOWU5YThhMDk4NTgiLCJlbWFpbCI6Im1lbWJlckB0cmVsbG8uY29tIiwiaWF0IjoxNzY2OTM5MzE2LCJleHAiOjE3NjY5NDAyMTZ9.af86hgKJ6YCfM2AHVWtA0DylgB91RZgqz2UY0IyzRjg';
-    
-    // Cách 1: Nếu server hỗ trợ token qua query
-    const eventSource = new EventSource(
-      `http://localhost:3000/api/notifications/stream?token=${token}`
-    );
-    
-    eventSource.onopen = () => {
-      console.log('Connected to SSE');
-      document.getElementById('notifications').innerHTML += '<p>✅ Connected!</p>';
-    };
-    
-    eventSource.addEventListener('notification', (e) => {
-      const data = JSON.parse(e.data);
-      console.log('Notification:', data);
-      document.getElementById('notifications').innerHTML += 
-        `<p>🔔 ${JSON.stringify(data)}</p>`;
-    });
-    
-    eventSource.onerror = (e) => {
-      console.error('SSE Error:', e);
-    };
-  </script>
-</body>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SSE Test</title>
+  </head>
+  <body>
+    <h1>SSE Notifications Test</h1>
+    <div id="notifications"></div>
+
+    <script>
+      const token =
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJlM2ZjN2I0Ny1iYWFmLTRhMTYtYTI0OS0xOWU5YThhMDk4NTgiLCJlbWFpbCI6Im1lbWJlckB0cmVsbG8uY29tIiwiaWF0IjoxNzY2OTM5MzE2LCJleHAiOjE3NjY5NDAyMTZ9.af86hgKJ6YCfM2AHVWtA0DylgB91RZgqz2UY0IyzRjg';
+
+      // Cách 1: Nếu server hỗ trợ token qua query
+      const eventSource = new EventSource(
+        `http://localhost:3000/api/notifications/stream?token=${token}`
+      );
+
+      eventSource.onopen = () => {
+        console.log('Connected to SSE');
+        document.getElementById('notifications').innerHTML +=
+          '<p>✅ Connected!</p>';
+      };
+
+      eventSource.addEventListener('notification', (e) => {
+        const data = JSON.parse(e.data);
+        console.log('Notification:', data);
+        document.getElementById('notifications').innerHTML +=
+          `<p>🔔 ${JSON.stringify(data)}</p>`;
+      });
+
+      eventSource.onerror = (e) => {
+        console.error('SSE Error:', e);
+      };
+    </script>
+  </body>
 </html>

@@ -20,7 +20,7 @@ export class AuthorizationSeeder {
       const permissionRepository = AppDataSource.getRepository(Permission);
       const roleRepository = AppDataSource.getRepository(Role);
       const rolePermissionRepository =
-      AppDataSource.getRepository(RolePermission);
+        AppDataSource.getRepository(RolePermission);
       const userRepository = AppDataSource.getRepository(User);
       // const userRoleRepository = AppDataSource.getRepository(UserRole);
 
@@ -594,43 +594,23 @@ export class AuthorizationSeeder {
       // 🧨 THỨ TỰ QUAN TRỌNG: XÓA CON TRƯỚC, CHA SAU
 
       // 1. Xóa mapping role-permission
-      await rolePermRepo
-        .createQueryBuilder()
-        .delete()
-        .where('1=1')
-        .execute();
+      await rolePermRepo.createQueryBuilder().delete().where('1=1').execute();
       console.log('🗑️  Removed all role-permission associations');
 
       // 2. Nếu có bảng comments FK -> users, xóa comment trước
-      await commentRepo
-        .createQueryBuilder()
-        .delete()
-        .where('1=1')
-        .execute();
+      await commentRepo.createQueryBuilder().delete().where('1=1').execute();
       console.log('🗑️  Removed all comments');
 
       // 3. Xóa users (nếu script muốn dọn luôn user seed)
-      await userRepo
-        .createQueryBuilder()
-        .delete()
-        .where('1=1')
-        .execute();
+      await userRepo.createQueryBuilder().delete().where('1=1').execute();
       console.log('🗑️  Removed all users');
 
       // 4. Xóa roles
-      await roleRepo
-        .createQueryBuilder()
-        .delete()
-        .where('1=1')
-        .execute();
+      await roleRepo.createQueryBuilder().delete().where('1=1').execute();
       console.log('🗑️  Removed all roles');
 
       // 5. Xóa permissions
-      await permRepo
-        .createQueryBuilder()
-        .delete()
-        .where('1=1')
-        .execute();
+      await permRepo.createQueryBuilder().delete().where('1=1').execute();
       console.log('🗑️  Removed all permissions');
 
       console.log('✅ RBAC cleanup completed');
@@ -638,7 +618,6 @@ export class AuthorizationSeeder {
       await AppDataSource.destroy();
     }
   }
-
 }
 
 // Script execution entrypoint

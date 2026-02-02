@@ -60,7 +60,7 @@ export const ReorderList = z.object({
     id: z.uuid(),
   }),
   body: z.object({
-    prevListId: z.uuid(),
-    nextListId: z.uuid(),
+    prevListId: z.string().uuid().nullable(),
+    nextListId: z.string().uuid().nullable(),
   }),
 });

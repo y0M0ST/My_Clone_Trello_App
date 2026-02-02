@@ -65,32 +65,32 @@ export const validateRequest =
 
 export const validateHandle =
   (schema: ZodObject<ZodRawShape>) =>
-    (req: Request, res: Response, next: NextFunction) => {
-      console.log("🔥 [DEBUG MIDDLEWARE] Đang check body:", req.body);
+  (req: Request, res: Response, next: NextFunction) => {
+    console.log('🔥 [DEBUG MIDDLEWARE] Đang check body:', req.body);
 
-      const result = schema.safeParse(req.body);
+    const result = schema.safeParse(req.body);
 
-      if (!result.success) {
-        const errorDetail = result.error.issues
-          .map((issue) => `${issue.path.join('.')}: ${issue.message}`)
-          .join(', ');
+    if (!result.success) {
+      const errorDetail = result.error.issues
+        .map((issue) => `${issue.path.join('.')}: ${issue.message}`)
+        .join(', ');
 
-        console.error("❌ [DEBUG MIDDLEWARE] Validate Thất Bại:", errorDetail);
+      console.error('❌ [DEBUG MIDDLEWARE] Validate Thất Bại:', errorDetail);
 
-        return res
-          .status(StatusCodes.BAD_REQUEST)
-          .json(
-            new ServiceResponse<null>(
-              ResponseStatus.Failed,
-              `Invalid body: ${errorDetail}`,
-              null,
-              StatusCodes.BAD_REQUEST
-            )
-          );
-      }
+      return res
+        .status(StatusCodes.BAD_REQUEST)
+        .json(
+          new ServiceResponse<null>(
+            ResponseStatus.Failed,
+            `Invalid body: ${errorDetail}`,
+            null,
+            StatusCodes.BAD_REQUEST
+          )
+        );
+    }
 
-      console.log("✅ [DEBUG MIDDLEWARE] Validate OK -> Chuyển tiếp Controller");
+    console.log('✅ [DEBUG MIDDLEWARE] Validate OK -> Chuyển tiếp Controller');
 
-      req.body = result.data;
-      next();
-    };
+    req.body = result.data;
+    next();
+  };

@@ -1082,8 +1082,6 @@ route.get(
   }
 );
 
-
-
 /**
  * @swagger
  * /boards/{id}/activity:

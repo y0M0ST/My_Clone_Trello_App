@@ -216,8 +216,8 @@ export class ListService {
 
   async reorderList(
     currentListId: string,
-    prevListId: string,
-    nextListId: string
+    prevListId: string | null,
+    nextListId: string | null
   ) {
     if (nextListId === currentListId) {
       throw new Error('NextListId cannot be the same as CurrentListId');
@@ -225,14 +225,22 @@ export class ListService {
     if (prevListId === currentListId) {
       throw new Error('PrevListId cannot be the same as CurrentListId');
     }
-    if (prevListId === nextListId) {
+    if (prevListId && nextListId && prevListId === nextListId) {
       throw new Error('PrevListId cannot be the same as NextListId');
     }
-    const [currentList, prevList, nextList] = await Promise.all([
-      this.listRepository.findListById(currentListId, false),
-      this.listRepository.findListById(prevListId, false),
-      this.listRepository.findListById(nextListId, false),
-    ]);
+
+    // Fetch only existing lists
+    const queries: Promise<List | null>[] = [
+      this.listRepository.findListById(currentListId, false)
+    ];
+    if (prevListId) queries.push(this.listRepository.findListById(prevListId, false));
+    if (nextListId) queries.push(this.listRepository.findListById(nextListId, false));
+
+    const results = await Promise.all(queries);
+    const currentList = results[0];
+    const prevList = prevListId ? results[1] : null; // careful with index if logic changes
+    const nextList = nextListId ? (prevListId ? results[2] : results[1]) : null;
+
     if (!currentList) {
       throw new Error('Current list not found');
     }
@@ -244,15 +252,20 @@ export class ListService {
     }
 
     let position: number;
+
     if (prevList && nextList) {
-      if (prevList.position < nextList.position) {
-        position = (nextList.position + prevList.position) / 2;
-      } else if (!prevList.position && nextList.position) {
-        position = nextList.position - 1;
-      } else if (prevList.position && !nextList.position) {
-        position = prevList.position + 1;
-      } else position = 0;
+      position = (prevList.position + nextList.position) / 2;
+    } else if (prevList && !nextList) {
+      // Move to end (no next list)
+      position = prevList.position + 10000;
+    } else if (!prevList && nextList) {
+      // Move to start (no prev list)
+      position = nextList.position / 2;
+    } else {
+      // Only list? or fallback
+      position = 10000;
     }
+
     const result = await this.listRepository.updateList(currentListId, {
       position: position,
     } as any);

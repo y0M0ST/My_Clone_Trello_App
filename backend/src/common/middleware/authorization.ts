@@ -13,8 +13,8 @@ interface AuthorizationOptions {
 }
 const getBoardIdFromRequest = (req: Request): string | undefined => {
   return (
-    (req.params as any).boardId ||      // /boards/:boardId/...
-    (req.params as any).id ||           // /boards/:id/... (các route cũ)
+    (req.params as any).boardId || // /boards/:boardId/...
+    (req.params as any).id || // /boards/:id/... (các route cũ)
     (req.query.boardId as string | undefined) ||
     (req.body.boardId as string | undefined)
   );
@@ -454,11 +454,11 @@ export function requireBoardPermissions(
   const permissionArray = Array.isArray(permissions)
     ? permissions
     : [permissions];
-  
+
   const getBoardIdFromRequest = (req: Request): string | undefined => {
     return (
-      (req.params as any).boardId ||      // /boards/:boardId/...
-      (req.params as any).id ||           // /boards/:id/... (các route cũ)
+      (req.params as any).boardId || // /boards/:boardId/...
+      (req.params as any).id || // /boards/:id/... (các route cũ)
       (req.query.boardId as string | undefined) ||
       (req.body.boardId as string | undefined)
     );

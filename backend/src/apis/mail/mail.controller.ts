@@ -17,7 +17,9 @@ export class EmailController {
 
     const lastSent = await redisClient.get(`lastSent:${email}`);
     if (lastSent) {
-      return res.status(429).json({ message: 'Wait a bit before requesting again.' });
+      return res
+        .status(429)
+        .json({ message: 'Wait a bit before requesting again.' });
     }
 
     try {
@@ -25,9 +27,13 @@ export class EmailController {
 
       await emailService.sendVerificationEmail(email, otp);
 
-      await redisClient.set(`lastSent:${email}`, Date.now().toString(), { EX: 60 });
+      await redisClient.set(`lastSent:${email}`, Date.now().toString(), {
+        EX: 60,
+      });
 
-      return res.status(200).json({ message: 'Verification email sent (Test OTP: ' + otp + ')' });
+      return res
+        .status(200)
+        .json({ message: 'Verification email sent (Test OTP: ' + otp + ')' });
     } catch (error) {
       return res.status(500).json({ message: 'Failed to send email', error });
     }

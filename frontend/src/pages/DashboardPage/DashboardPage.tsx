@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState, useCallback } from "react"
-import { AppSidebar } from "@/features/sidebar/ui"
+import { AppSidebar } from "@/features/sidebar"
 import { Button } from "@/shared/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card"
 import { Separator } from "@/shared/ui/separator"
@@ -14,11 +14,11 @@ import {
 } from "@/shared/ui/sidebar"
 import { useNavigate } from "react-router-dom";
 import { Plus, ChartNoAxesColumn, Users, Lock, Globe } from "lucide-react"
-import { workspaceApi } from "@/shared/api/workspace.api" 
+import { workspaceApi } from "@/shared/api/workspace.api"
 
 interface Board {
   id: string
-  title: string 
+  title: string
   description?: string
   coverUrl?: string
   visibility: 'private' | 'public'
@@ -34,7 +34,7 @@ interface Workspace {
   title: string
   description?: string
   visibility: 'private' | 'public'
-  myRole?: WorkspaceRole 
+  myRole?: WorkspaceRole
   boards?: Board[]
 }
 
@@ -122,22 +122,24 @@ export default function DashboardPage() {
                       <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary font-bold text-xl">
                         {workspace.title.charAt(0).toUpperCase()}
                       </div>
-                      <div className="space-y-1">
+                      <div className="space-y-1 min-w-0 flex-1">
                         <div className="flex items-center gap-2">
-                          <h3 className="text-xl font-bold tracking-tight">
+                          <h3 className="text-xl font-bold tracking-tight truncate" title={workspace.title}>
                             {workspace.title}
                           </h3>
-                          {workspace.myRole && (
-                            <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">
-                              {workspace.myRole.name.replace('workspace_', '')}
+                          <div className="flex shrink-0 gap-2">
+                            {workspace.myRole && (
+                              <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10 shrink-0">
+                                {workspace.myRole.name.replace('workspace_', '')}
+                              </span>
+                            )}
+                            <span className="inline-flex items-center rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/10 capitalize shrink-0">
+                              {workspace.visibility === 'public' ? <Globe className="w-3 h-3 mr-1" /> : <Lock className="w-3 h-3 mr-1" />}
+                              {workspace.visibility}
                             </span>
-                          )}
-                          <span className="inline-flex items-center rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/10 capitalize">
-                            {workspace.visibility === 'public' ? <Globe className="w-3 h-3 mr-1" /> : <Lock className="w-3 h-3 mr-1" />}
-                            {workspace.visibility}
-                          </span>
+                          </div>
                         </div>
-                        <p className="text-sm text-muted-foreground max-w-md">
+                        <p className="text-sm text-muted-foreground max-w-md truncate" title={workspace.description}>
                           {workspace.description || "No description provided."}
                         </p>
                       </div>
@@ -165,12 +167,23 @@ export default function DashboardPage() {
                         >
                           <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-primary to-primary/50 opacity-0 transition-opacity group-hover:opacity-100" />
 
-                          <CardHeader className="pb-3">
-                            <CardTitle className="text-base font-semibold leading-tight flex justify-between">
-                              <span className="truncate">{board.title}</span>
-                              {board.visibility === 'private' && <Lock className="w-3 h-3 text-muted-foreground shrink-0" />}
+                          <CardHeader className="pb-3 min-w-0">
+                            <CardTitle className="text-base font-semibold leading-tight flex items-start gap-2 min-w-0">
+                              <span
+                                className="min-w-0 flex-1 truncate"
+                                title={board.title}
+                              >
+                                {board.title}
+                              </span>
+
+                              {board.visibility === "private" && (
+                                <Lock className="w-3 h-3 text-muted-foreground shrink-0 mt-[2px]" />
+                              )}
                             </CardTitle>
-                            <CardDescription className="line-clamp-2 text-xs mt-1">
+                            <CardDescription
+                              className="line-clamp-2 text-xs mt-1 break-words"
+                              title={board.description || ""}
+                            >
                               {board.description || "No description"}
                             </CardDescription>
                           </CardHeader>

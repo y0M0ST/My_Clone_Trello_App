@@ -5,8 +5,11 @@ export type BoardVisibility = 'private' | 'public' | 'workspace';
 export interface Card {
     id: string;
     title: string;
+    description?: string;
     coverUrl?: string;
     position?: number;
+    isCompleted?: boolean;
+    isArchived?: boolean;
 }
 
 export interface List {
@@ -42,11 +45,29 @@ export const boardApi = {
         return apiFactory.put<BoardDetail>(`/boards/${id}`, data);
     },
 
-    inviteMember: (boardId: string, email: string) => {
-        return apiFactory.post<void>(`/boards/${boardId}/invite`, { email });
+    inviteMember: (boardId: string, email: string, roleId: string) => {
+        return apiFactory.post<void>(`/boards/${boardId}/invite`, { email, roleId });
     },
 
     createBoard: (data: { title: string; workspaceId: string; visibility: 'private' | 'public'; description?: string }) => {
         return apiFactory.post('/boards', data);
     },
+
+    deletePermanently: (id: string) => {
+        return apiFactory.delete(`/boards/${id}`);
+    },
+
+    removeMember: (boardId: string, userId: string) => {
+        return apiFactory.delete(`/boards/${boardId}/members/${userId}`);
+    },
+
+    updateCover: (boardId: string, file: File) => {
+        const formData = new FormData();
+        formData.append('cover', file);
+        return apiFactory.patch(`/boards/${boardId}/settings/cover`, formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+        });
+    }
 };

@@ -92,5 +92,4 @@ export class Board extends DateTimeEntity {
   public labels: Label[];
   @OneToMany(() => BoardActivity, (activity) => activity.board)
   public activities: BoardActivity[];
-
 }

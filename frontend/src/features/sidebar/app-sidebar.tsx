@@ -1,9 +1,10 @@
 "use client"
 
-import { Kanban, LayoutDashboard } from "lucide-react"
-import { NavMain } from "./sidebar-main"
+
+
 import { NavUser } from "./sidebar-user"
-import { TeamSwitcher } from "./sidebar-switcher"
+import { NavWorkspaces } from "./sidebar-workspaces"
+import { workspaceApi } from "@/shared/api/workspace.api"
 import {
   Sidebar,
   SidebarContent,
@@ -14,32 +15,30 @@ import {
 
 import { apiFactory } from "@/shared/api"
 import { API_ENDPOINTS } from "@/shared/api/api-endpoint"
-import type { Workspace, User } from "@/shared/types" 
+import type { Workspace, User } from "@/shared/types"
 import { useEffect, useState } from "react"
-import { workspaceService } from "@/shared/api/services/workspaceService"
+
 import { tokenStorage } from "@/shared/utils/tokenStorage"
 
-interface WorkspaceWithLogo extends Workspace {
-  logo: React.ElementType
-}
 
-const navMain = [
-  {
-    title: "All Boards",
-    url: "#",
-    icon: LayoutDashboard,
-    isActive: true,
-    items: [
-      { title: "History", url: "#" },
-      { title: "Starred", url: "#" },
-      { title: "Settings", url: "#" },
-    ],
-  },
-]
+
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const [workspaces, setWorkspaces] = useState<WorkspaceWithLogo[]>([])
+  const [workspaces, setWorkspaces] = useState<Workspace[]>([])
   const [user, setUser] = useState<User | null>(null)
+
+  const fetchWorkspaces = async () => {
+    try {
+      const wsResponse: any = await workspaceApi.getMyWorkspaces();
+      const data = wsResponse.responseObject || wsResponse.data || [];
+      if (Array.isArray(data)) {
+        setWorkspaces(data);
+      }
+    } catch (e) {
+      console.error(e)
+      setWorkspaces([]);
+    }
+  };
 
   useEffect(() => {
     const initData = async () => {
@@ -47,7 +46,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       if (!currentUser && tokenStorage.getAccessToken()) {
         try {
           const response = await apiFactory.get(API_ENDPOINTS.AUTH.ME);
-          currentUser = response.responseObject; 
+          currentUser = response.responseObject;
           if (currentUser) {
             tokenStorage.setUser(currentUser);
           }
@@ -58,12 +57,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
       console.log("User final:", currentUser);
       setUser(currentUser);
-      try {
-        const wsResponse = await workspaceService.getAll();
-        if (Array.isArray(wsResponse?.responseObject)) {
-          setWorkspaces(wsResponse.responseObject.map(w => ({ ...w, logo: Kanban })));
-        }
-      } catch (e) { console.error(e) }
+      await fetchWorkspaces();
     };
 
     initData();
@@ -72,10 +66,16 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
-        <TeamSwitcher teams={workspaces} />
+        {/* <TeamSwitcher teams={workspaces} /> */}
+        <div className="flex items-center gap-2 px-4 py-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 text-white font-bold">
+            T
+          </div>
+          <div className="font-semibold text-lg">Trello Clone</div>
+        </div>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={navMain} />
+        <NavWorkspaces workspaces={workspaces} onDelete={fetchWorkspaces} />
       </SidebarContent>
 
       <SidebarFooter>

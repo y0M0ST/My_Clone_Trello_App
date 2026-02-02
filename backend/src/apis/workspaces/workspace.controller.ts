@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Request } from 'express';
 import { StatusCodes } from 'http-status-codes';
 import { WorkspaceService } from './workspace.service';

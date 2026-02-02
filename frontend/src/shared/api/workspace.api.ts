@@ -1,4 +1,4 @@
-import apiFactory  from "./api-factory";
+import apiFactory from "./api-factory";
 import { API_ENDPOINTS } from "./api-endpoint";
 
 export interface Workspace {
@@ -25,5 +25,8 @@ export const workspaceApi = {
     },
     getDetail: (id: string) => {
         return apiFactory.get<Workspace>(`${API_ENDPOINTS.WORKSPACES.BASE}/${id}`);
+    },
+    delete: (id: string) => {
+        return apiFactory.delete(`${API_ENDPOINTS.WORKSPACES.BASE}/${id}`);
     }
 };

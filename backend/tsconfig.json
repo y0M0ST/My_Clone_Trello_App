@@ -9,6 +9,9 @@
       "@/*": ["src/*"]
     },
     "strict": false,
+    "noImplicitAny": false, // Cho phép dùng 'any' thoải mái
+    "strictNullChecks": false, // Không bắt bẻ vụ null/undefined
+    "strictPropertyInitialization": false,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "experimentalDecorators": true,

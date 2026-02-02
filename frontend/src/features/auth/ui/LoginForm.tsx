@@ -67,7 +67,7 @@ export const LoginForm = ({ onSuccess }: OAuthFormProps) => {
         navigate(ROUTES.DASHBOARD)
       }
     } catch (error) {
-      setLoginError(error instanceof Error ? error.message : "Login failed")
+      setLoginError("Invalid email or password, please try again.")
     }
   }
 

@@ -85,7 +85,8 @@ export const uploadAttachmentToCloudinary = (
         }
         resolve({
           url: result.secure_url,
-          mimeType: file.mimetype || result.format || 'application/octet-stream',
+          mimeType:
+            file.mimetype || result.format || 'application/octet-stream',
           bytes: result.bytes,
         });
       }

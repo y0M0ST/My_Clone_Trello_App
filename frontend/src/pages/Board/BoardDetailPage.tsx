@@ -22,7 +22,7 @@ import type {
 import { arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 
 import { ListColumn } from "@/features/board/components/ListColumn";
-import { CardItem } from "@/features/board/components/CardItem";
+import { CardContent } from "@/features/board/components/CardItem";
 
 import { cardApi } from "@/shared/api/card.api";
 import { boardApi } from "@/shared/api/board.api";
@@ -62,6 +62,7 @@ export default function BoardDetailPage() {
         useSensor(PointerSensor, { activationConstraint: { distance: 10 } }),
         useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
     );
+
     const findColumn = (cols: any[], uniqueId: string) => {
         if (!uniqueId) return null;
         if (cols.some((c) => c.id === uniqueId)) {
@@ -69,6 +70,7 @@ export default function BoardDetailPage() {
         }
         return cols.find((c) => c.cards?.some((card: any) => card.id === uniqueId));
     };
+
     const handleDragStart = (event: DragStartEvent) => {
         const activeId = event.active.id as string;
         const column = findColumn(columns, activeId);
@@ -237,7 +239,7 @@ export default function BoardDetailPage() {
             }
         } catch (error) {
             console.error("Move failed:", error);
-            fetchBoard(); 
+            fetchBoard();
         }
     };
 
@@ -257,7 +259,7 @@ export default function BoardDetailPage() {
 
             <DragOverlay dropAnimation={dropAnimation}>
                 {activeDragItem ? (
-                    <CardItem card={activeDragItem} onReload={() => { }} />
+                    <CardContent card={activeDragItem} onReload={() => { }} />
                 ) : null}
             </DragOverlay>
         </DndContext>

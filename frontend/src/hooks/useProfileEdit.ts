@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { tokenStorage } from "@/shared/utils/tokenStorage";
 import { apiFactory, API_ENDPOINTS } from "@/shared/api";
-import type { User } from "@/shared/types";
+
 
 
 export const useProfileEdit = () => {
@@ -13,9 +13,9 @@ export const useProfileEdit = () => {
     const [error, setError] = useState<string | null>(null);
 
     const updateProfile = async (data: { name: string; bio: string; avatar?: FileList }) => {
-        console.log("🔥 KẾT QUẢ FORM GỬI SANG:", data);
-        console.log("🔥 Check Avatar:", data.avatar);
-        console.log("🔥 Check Length:", data.avatar?.length);
+        // console.log("🔥 KẾT QUẢ FORM GỬI SANG:", data);
+        // console.log("🔥 Check Avatar:", data.avatar);
+        // console.log("🔥 Check Length:", data.avatar?.length);
         setError(null);
         setIsLoading(true);
 

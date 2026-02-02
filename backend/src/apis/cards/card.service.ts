@@ -365,9 +365,8 @@ export class CardService {
     let bytes: number | undefined;
 
     if (attachmentData.file) {
-      const { uploadAttachmentToCloudinary } = await import(
-        '@/config/cloudinary'
-      );
+      const { uploadAttachmentToCloudinary } =
+        await import('@/config/cloudinary');
       const uploadResult = await uploadAttachmentToCloudinary(
         attachmentData.file
       );
@@ -687,21 +686,22 @@ export class CardService {
 
   async moveCard(data: {
     cardId: string;
-    prevColumnId: string; 
-    prevIndex: number;    
-    nextColumnId: string; 
-    nextIndex: number;   
+    prevColumnId: string;
+    prevIndex: number;
+    nextColumnId: string;
+    nextIndex: number;
   }): Promise<any> {
     const { cardId, prevColumnId, prevIndex, nextColumnId, nextIndex } = data;
     const cardToMove = await this.cardRepository.getCardById(cardId, {});
     if (!cardToMove) throw new Error('Card not found');
     if (prevColumnId === nextColumnId) {
-      if (prevIndex === nextIndex) return cardToMove; 
+      if (prevIndex === nextIndex) return cardToMove;
 
-      const cardsInList = await this.cardRepository.getCardsByListId(prevColumnId);
+      const cardsInList =
+        await this.cardRepository.getCardsByListId(prevColumnId);
       const newOrderedCards = [...cardsInList];
-      const [removed] = newOrderedCards.splice(prevIndex, 1); 
-      newOrderedCards.splice(nextIndex, 0, removed); 
+      const [removed] = newOrderedCards.splice(prevIndex, 1);
+      newOrderedCards.splice(nextIndex, 0, removed);
       await Promise.all(
         newOrderedCards.map((card, index) =>
           this.cardRepository.updateCard(card.id, { position: index })
@@ -709,11 +709,10 @@ export class CardService {
       );
 
       return { ...cardToMove, position: nextIndex };
-    }
-
-    else {
-      const cardsInPrevList = await this.cardRepository.getCardsByListId(prevColumnId);
-      const newPrevList = cardsInPrevList.filter(c => c.id !== cardId);
+    } else {
+      const cardsInPrevList =
+        await this.cardRepository.getCardsByListId(prevColumnId);
+      const newPrevList = cardsInPrevList.filter((c) => c.id !== cardId);
 
       await Promise.all(
         newPrevList.map((card, index) =>
@@ -721,16 +720,20 @@ export class CardService {
         )
       );
 
-      const cardsInNextList = await this.cardRepository.getCardsByListId(nextColumnId);
+      const cardsInNextList =
+        await this.cardRepository.getCardsByListId(nextColumnId);
       const newNextList = [...cardsInNextList];
       const updatedCardData = { listId: nextColumnId };
-      newNextList.splice(nextIndex, 0, { ...cardToMove, ...updatedCardData } as any);
+      newNextList.splice(nextIndex, 0, {
+        ...cardToMove,
+        ...updatedCardData,
+      } as any);
       await Promise.all(
         newNextList.map((card, index) => {
           if (card.id === cardId) {
             return this.cardRepository.updateCard(card.id, {
               listId: nextColumnId,
-              position: index
+              position: index,
             });
           }
           return this.cardRepository.updateCard(card.id, { position: index });

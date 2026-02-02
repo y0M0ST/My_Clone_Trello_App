@@ -29,7 +29,7 @@ export class AuthService {
     const newUser = this.userRepository.create({
       ...data,
       password: hashedPassword,
-      isActive: false, 
+      isActive: false,
     });
 
     await this.userRepository.save(newUser);
@@ -41,7 +41,7 @@ export class AuthService {
     try {
       await this.emailService.sendVerificationEmail(newUser.email, otp);
     } catch (err) {
-      console.error("Gửi mail lỗi:", err);
+      console.error('Gửi mail lỗi:', err);
     }
 
     return {
@@ -68,22 +68,28 @@ export class AuthService {
       return { message: 'Tài khoản đã được kích hoạt trước đó' };
     }
 
-    user.isActive = true; 
+    user.isActive = true;
     await this.userRepository.save(user);
 
     await redisClient.del(`verify_email:${email}`);
 
-    return { message: 'Kích hoạt tài khoản thành công! Bạn có thể đăng nhập ngay.' };
+    return {
+      message: 'Kích hoạt tài khoản thành công! Bạn có thể đăng nhập ngay.',
+    };
   }
 
   async login(data: LoginInput, userAgent?: string, ip?: string) {
     const user = await this.userRepository
       .createQueryBuilder('user')
-      .select(['user.id', 'user.email', 'user.password', 'user.isActive',
-        'user.name',      
-        'user.bio',       
-        'user.avatarUrl'  
-      ])  
+      .select([
+        'user.id',
+        'user.email',
+        'user.password',
+        'user.isActive',
+        'user.name',
+        'user.bio',
+        'user.avatarUrl',
+      ])
       .where('user.email = :email', { email: data.email })
       .getOne();
 
@@ -92,6 +98,7 @@ export class AuthService {
     const isPasswordValid = await bcrypt.compare(data.password, user.password);
     if (!isPasswordValid) throw new Error('Invalid password');
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password, ...userWithoutPassword } = user;
     await redisClient.set(
       `user:${user.id}`,
@@ -216,27 +223,31 @@ export class AuthService {
   }
 
   async forgetPassword(email: string) {
-    console.log("🔍 [AUTH DEBUG] Tìm user với email:", email);
+    console.log('🔍 [AUTH DEBUG] Tìm user với email:', email);
 
     const user = await this.userRepository.findOne({
-      where: { email }, 
+      where: { email },
     });
 
     if (!user) {
-      console.error("❌ [AUTH ERROR] Không tìm thấy user trong DB!");
+      console.error('❌ [AUTH ERROR] Không tìm thấy user trong DB!');
       throw new Error('User not found!');
     }
 
     if (user.isActive === false) {
-      console.error("❌ [AUTH ERROR] User tồn tại nhưng chưa Active!");
-      throw new Error('Tài khoản chưa được kích hoạt, vui lòng kiểm tra email để xác thực trước.');
+      console.error('❌ [AUTH ERROR] User tồn tại nhưng chưa Active!');
+      throw new Error(
+        'Tài khoản chưa được kích hoạt, vui lòng kiểm tra email để xác thực trước.'
+      );
     }
 
-    console.log("✅ [AUTH DEBUG] User found:", user.id);
+    console.log('✅ [AUTH DEBUG] User found:', user.id);
 
     const code = Math.floor(100000 + Math.random() * 900000).toString();
 
-    const oldFotgetPasswordCode = await redisClient.get(`forgetPassword:${email}`);
+    const oldFotgetPasswordCode = await redisClient.get(
+      `forgetPassword:${email}`
+    );
     if (oldFotgetPasswordCode) {
       await redisClient.del(`forgetPassword:${oldFotgetPasswordCode}`);
     }
@@ -273,6 +284,7 @@ export class AuthService {
     const user = await this.userService.getDetailUser(id);
     if (!user) throw new Error('User not found');
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password, ...userWithoutPassword } = user;
     await redisClient.set(`user:${id}`, JSON.stringify(userWithoutPassword), {
       EX: 900,
