@@ -1,12 +1,13 @@
+import 'dotenv/config';
 import express from 'express';
 import { setupSwagger } from './config/swagger';
-import * as dotenv from 'dotenv';
+// import * as dotenv from 'dotenv'; // Removed as we use 'dotenv/config'
 import { AppDataSource } from './config/data-source';
 import AppRoute from './apis/index';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 
-dotenv.config();
+// dotenv.config(); // Loaded at top via import 'dotenv/config'
 
 const app = express();
 app.use(express.json());
