@@ -86,7 +86,7 @@ export function CardDetailDialog({ card, open, onClose, onUpdate, members = [], 
                                 className="text-xl font-bold border-transparent focus:border-blue-600 bg-transparent px-2 py-1 -ml-2 w-full shadow-none focus-visible:ring-2 focus-visible:ring-blue-600 h-auto"
                             />
                             <p className="text-sm text-gray-500 px-1 mt-1">
-                                trong danh sách <span className="underline decoration-dotted cursor-pointer">Danh sách này</span>
+                                trong danh sách <span className="underline decoration-dotted cursor-pointer">{card.listTitle || "Danh sách này"}</span>
                             </p>
                         </div>
                     </div>

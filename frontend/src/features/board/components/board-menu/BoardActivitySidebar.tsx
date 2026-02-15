@@ -121,9 +121,10 @@ export function BoardActivitySidebar({ boardId, children }: Props) {
                                             </p>
                                             {/* Show comment text if it's a comment */}
                                             {action.actionType === 'COMMENT_ADDED' && action.metadata?.text && (
-                                                <div className="mt-1 p-2 bg-gray-100 rounded text-gray-700 italic border border-gray-200">
-                                                    {action.metadata.text}
-                                                </div>
+                                                <div
+                                                    className="mt-1 p-2 bg-gray-100 rounded text-gray-700 italic border border-gray-200 prose prose-sm max-w-none [&>p]:m-0"
+                                                    dangerouslySetInnerHTML={{ __html: action.metadata.text }}
+                                                />
                                             )}
                                             {/* Show changed fields for updates */}
                                             {action.actionType === 'BOARD_SETTINGS_UPDATED' && action.metadata?.changedFields && (
@@ -160,9 +161,10 @@ export function BoardActivitySidebar({ boardId, children }: Props) {
                                             <p className="text-xs text-gray-500 mb-1">
                                                 trong thẻ "{action.metadata?.cardTitle}"
                                             </p>
-                                            <div className="mt-1 p-3 bg-white border border-gray-200 rounded shadow-sm text-gray-800">
-                                                {action.metadata?.text}
-                                            </div>
+                                            <div
+                                                className="mt-1 p-3 bg-white border border-gray-200 rounded shadow-sm text-gray-800 prose prose-sm max-w-none [&>p]:m-0"
+                                                dangerouslySetInnerHTML={{ __html: action.metadata?.text || '' }}
+                                            />
                                             <p className="text-xs text-gray-400 mt-1">
                                                 {formatDistanceToNow(new Date(action.createdAt), { addSuffix: true, locale: vi })}
                                             </p>

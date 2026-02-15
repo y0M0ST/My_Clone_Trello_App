@@ -10,17 +10,14 @@ import {
     Globe,
     Lock,
     Users,
-    Share2,
     MoreHorizontal,
-    Image as ImageIcon,
     Check,
     ChevronDown,
     Trash2,
     XCircle,
     Activity, Archive, Info,
-    Plus, Search,
-    Filter, ArrowUpDown, Calendar,
-    X
+    Image as ImageIcon,
+    type LucideIcon
 } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
@@ -47,7 +44,6 @@ import {
 import { toast } from "sonner";
 import {
     DndContext,
-    closestCorners,
     useSensor,
     useSensors,
     PointerSensor,
@@ -59,8 +55,7 @@ import {
     type DropAnimation,
     KeyboardSensor,
     pointerWithin,
-    rectIntersection,
-    getFirstCollision,
+    closestCorners,
     type CollisionDetection
 } from "@dnd-kit/core";
 import {
@@ -100,7 +95,7 @@ const VISIBILITY_OPTIONS = [
         icon: Globe,
         description: "Bất kỳ ai trên internet đều có thể xem (chỉ thành viên mới được sửa).",
     },
-];
+] as const;
 
 const getInitials = (name: string | null | undefined) => {
     if (!name) return "?";
@@ -181,6 +176,28 @@ const BoardPage = () => {
     useEffect(() => {
         fetchBoardData();
     }, [fetchBoardData]);
+
+    // Sync selectedCard when board data updates
+    useEffect(() => {
+        if (selectedCard && board) {
+            let foundCard = null;
+            let listTitle = "";
+            for (const list of board.lists) {
+                const c = list.cards?.find((c: any) => c.id === selectedCard.id);
+                if (c) {
+                    foundCard = c;
+                    listTitle = list.title;
+                    break;
+                }
+            }
+
+            if (foundCard) {
+                // Only update if data actually changed to avoid infinite loops if objects are new ref but same content
+                // But simplified: just set it. React handles equality checks mostly, or we can rely on it being a different object ref from fetch.
+                setSelectedCard({ ...foundCard, listTitle });
+            }
+        }
+    }, [board]);
 
     const findColumn = (lists: any[], uniqueId: string) => {
         if (!uniqueId) return null;
@@ -421,7 +438,7 @@ const BoardPage = () => {
                 // dnd-kit handles the "swapping" logic naturally if we use standard strategies
                 // But here we doing manual calc. 
                 // Let's use arrayMove with the `active` and `over` indices directly if in same column
-                const newLists = board.lists.map(col => {
+                const newListsMap = board.lists.map(col => {
                     if (col.id === nextColumnId) {
                         return {
                             ...col,
@@ -430,7 +447,7 @@ const BoardPage = () => {
                     }
                     return col;
                 });
-                setBoard({ ...board, lists: newLists });
+                setBoard({ ...board, lists: newListsMap });
                 nextIndex = overCardIndexForSortable; // Update for API
             } else {
                 // Dropped on column -> move to end
@@ -518,7 +535,7 @@ const BoardPage = () => {
     const displayedMembers = members.slice(0, MAX_MEMBERS_SHOW);
     const hiddenMembersCount = members.length - MAX_MEMBERS_SHOW;
     const currentVisibility = VISIBILITY_OPTIONS.find(v => v.value === board?.visibility) || VISIBILITY_OPTIONS[0];
-    const CurrentIcon = currentVisibility.icon;
+    const CurrentIcon = currentVisibility.icon as LucideIcon;
 
     if (loading) return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin" /></div>;
     if (!board) return <div>Not found</div>;
@@ -582,7 +599,7 @@ const BoardPage = () => {
                                 </div>
                                 <div className="p-2 flex flex-col gap-1">
                                     {VISIBILITY_OPTIONS.map((option) => {
-                                        const Icon = option.icon;
+                                        const Icon = option.icon as LucideIcon;
                                         const isSelected = board.visibility === option.value;
                                         return (
                                             <div key={option.value} onClick={() => handleChangeVisibility(option.value as BoardVisibility)} className={`relative flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-all ${isSelected ? "bg-blue-50 border border-blue-200" : "hover:bg-gray-100"}`}>
@@ -611,7 +628,7 @@ const BoardPage = () => {
                                 <Tooltip>
                                     <TooltipTrigger asChild>
                                         <Avatar className="h-7 w-7 border-2 border-[#0055CC] cursor-pointer hover:z-10 transition-transform">
-                                            <AvatarImage src={member.avatarUrl} />
+                                            <AvatarImage src={member.avatarUrl || undefined} />
                                             <AvatarFallback className="text-[10px] bg-slate-200">
                                                 {getInitials(member.name)}
                                             </AvatarFallback>
@@ -632,7 +649,7 @@ const BoardPage = () => {
 
                     {/* Invite Button */}
                     {canManageMembers && (
-                        <InviteMemberDialog boardId={boardId!} onInviteSuccess={fetchBoardData}>
+                        <InviteMemberDialog boardId={boardId!} onSuccess={fetchBoardData}>
                             <Button variant="secondary" size="sm" className="h-8 bg-blue-100 text-blue-700 hover:bg-blue-200 mr-2">
                                 <Users className="h-4 w-4 mr-2" />
                                 Chia sẻ
