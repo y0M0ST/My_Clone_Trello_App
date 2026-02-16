@@ -52,7 +52,7 @@ route.patch(
   validateRequest(ListIdSchema),
   requireListPermissions(PERMISSIONS.LISTS_ARCHIVE),
   async (req, res) => {
-    const listId = req.params.id;
+    const listId = req.params.id as string;
     const response = await ListController.archiveList(listId);
     return handleServiceResponse(response, res);
   }
@@ -87,7 +87,7 @@ route.patch(
   validateRequest(ListIdSchema),
   requireListPermissions(PERMISSIONS.LISTS_UPDATE),
   async (req, res) => {
-    const listId = req.params.id;
+    const listId = req.params.id as string;
     const response = await ListController.unarchiveList(listId);
     return handleServiceResponse(response, res);
   }
@@ -122,7 +122,7 @@ route.patch(
   validateRequest(ListIdSchema),
   requireListPermissions(PERMISSIONS.CARDS_ARCHIVE),
   async (req, res) => {
-    const listId = req.params.id;
+    const listId = req.params.id as string;
     const response = await ListController.archiveAllCardsInList(listId);
     return handleServiceResponse(response, res);
   }
@@ -170,12 +170,12 @@ route.patch(
   validateRequest(MoveListToBoardSchema),
   requireListPermissions(PERMISSIONS.LISTS_UPDATE),
   async (req, res) => {
-    const listId = req.params.id;
+    const listId = req.params.id as string;
     const { boardId, position } = req.body;
     const response = await ListController.moveListToBoard(
       listId,
-      boardId,
-      position
+      boardId as string,
+      position as number
     );
     return handleServiceResponse(response, res);
   }
@@ -228,12 +228,12 @@ route.patch(
   validateRequest(MoveAllCardsSchema),
   requireListPermissions(PERMISSIONS.CARDS_MOVE),
   async (req, res) => {
-    const listId = req.params.id;
+    const listId = req.params.id as string;
     const { targetListId, targetBoardId } = req.body;
     const response = await ListController.moveAllCardsToAnotherList(
       listId,
-      targetListId,
-      targetBoardId
+      targetListId as string,
+      targetBoardId as string
     );
     return handleServiceResponse(response, res);
   }
@@ -291,13 +291,13 @@ route.post(
   validateRequest(CopyListSchema),
   requireListPermissions(PERMISSIONS.LISTS_CREATE),
   async (req, res) => {
-    const listId = req.params.id;
+    const listId = req.params.id as string;
     const { targetBoardId, title, position } = req.body;
     const response = await ListController.copyListToBoard(
       listId,
-      targetBoardId,
-      title,
-      position
+      targetBoardId as string,
+      title as string,
+      position as number
     );
     return handleServiceResponse(response, res);
   }
@@ -393,12 +393,12 @@ route.patch('/:id', validateRequest(UpdateListSchema), async (req, res) => {
  *         description: List not found
  */
 route.patch('/:id/reorder', validateRequest(ReorderList), async (req, res) => {
-  const currentListId = req.params.id;
+  const currentListId = req.params.id as string;
   const { prevListId, nextListId } = req.body;
   const response = await ListController.reorderList(
     currentListId,
-    prevListId,
-    nextListId
+    prevListId as string,
+    nextListId as string
   );
   return handleServiceResponse(response, res);
 });
@@ -428,7 +428,7 @@ route.patch('/:id/reorder', validateRequest(ReorderList), async (req, res) => {
  *         description: List not found
  */
 route.get('/:id/cards', validateRequest(ListIdSchema), async (req, res) => {
-  const listId = req.params.id;
+  const listId = req.params.id as string;
   const response = await ListController.getAllCardsInList(listId);
   return handleServiceResponse(response, res);
 });
@@ -466,7 +466,7 @@ route.delete(
   validateRequest(ListIdSchema),
   requireListPermissions(PERMISSIONS.LISTS_DELETE),
   async (req, res) => {
-    const listId = req.params.id;
+    const listId = req.params.id as string;
     const response = await ListController.deleteList(listId);
     return handleServiceResponse(response, res);
   }

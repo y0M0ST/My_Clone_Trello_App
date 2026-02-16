@@ -9,7 +9,7 @@ import {
 } from "@/shared/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/shared/ui/avatar";
 import { Button } from "@/shared/ui/button";
-import { X, UserX, Loader2 } from "lucide-react";
+import { UserX, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { boardApi, type Member } from "@/shared/api/board.api";
 import { tokenStorage } from "@/shared/utils/tokenStorage";
