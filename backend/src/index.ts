@@ -4,6 +4,7 @@ import { setupSwagger } from './config/swagger';
 // import * as dotenv from 'dotenv'; // Removed as we use 'dotenv/config'
 import { AppDataSource } from './config/data-source';
 import AppRoute from './apis/index';
+import { connectRedis } from './config/redisClient';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 
@@ -32,6 +33,10 @@ AppDataSource.initialize()
   .catch((err) => {
     console.log('Error during Data Source initialization', err);
   });
+
+connectRedis().catch((err) => {
+  console.error('Failed to connect to Redis:', err);
+});
 
 setupSwagger(app);
 
