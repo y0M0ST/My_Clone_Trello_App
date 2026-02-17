@@ -146,11 +146,11 @@ export class AuthController {
             const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
 
             return res.redirect(
-                `${frontendUrl}/?accessToken=${result.accessToken}&refreshToken=${result.refreshToken}`
+                `${frontendUrl}/dashboard?accessToken=${result.accessToken}&refreshToken=${result.refreshToken}`
             );
         } catch (error) {
             const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-            return res.redirect(`${frontendUrl}/dashboard?error=${encodeURIComponent(error.message)}`);
+            return res.redirect(`${frontendUrl}/login?error=${encodeURIComponent(error.message)}`);
         }
     }
 
