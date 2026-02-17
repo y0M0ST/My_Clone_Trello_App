@@ -150,7 +150,7 @@ export class AuthController {
             );
         } catch (error) {
             const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-            return res.redirect(`${frontendUrl}/login?error=${encodeURIComponent(error.message)}`);
+            return res.redirect(`${frontendUrl}/dashboard?error=${encodeURIComponent(error.message)}`);
         }
     }
 
