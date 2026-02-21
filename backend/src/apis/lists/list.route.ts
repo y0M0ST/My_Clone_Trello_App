@@ -53,7 +53,8 @@ route.patch(
   requireListPermissions(PERMISSIONS.LISTS_ARCHIVE),
   async (req, res) => {
     const listId = req.params.id as string;
-    const response = await ListController.archiveList(listId);
+    const userId = req.user?.userId;
+    const response = await ListController.archiveList(listId, userId);
     return handleServiceResponse(response, res);
   }
 );
@@ -88,7 +89,8 @@ route.patch(
   requireListPermissions(PERMISSIONS.LISTS_UPDATE),
   async (req, res) => {
     const listId = req.params.id as string;
-    const response = await ListController.unarchiveList(listId);
+    const userId = req.user?.userId;
+    const response = await ListController.unarchiveList(listId, userId);
     return handleServiceResponse(response, res);
   }
 );
@@ -172,10 +174,12 @@ route.patch(
   async (req, res) => {
     const listId = req.params.id as string;
     const { boardId, position } = req.body;
+    const userId = req.user?.userId;
     const response = await ListController.moveListToBoard(
       listId,
       boardId as string,
-      position as number
+      position as number,
+      userId
     );
     return handleServiceResponse(response, res);
   }
@@ -343,7 +347,9 @@ route.post(
  *         description: List not found
  */
 route.patch('/:id', validateRequest(UpdateListSchema), async (req, res) => {
-  const response = await ListController.updateList(req);
+  const listId = req.params.id as string;
+  const updateData = req.body;
+  const response = await ListController.updateList(listId, updateData);
   return handleServiceResponse(response, res);
 });
 
@@ -395,10 +401,12 @@ route.patch('/:id', validateRequest(UpdateListSchema), async (req, res) => {
 route.patch('/:id/reorder', validateRequest(ReorderList), async (req, res) => {
   const currentListId = req.params.id as string;
   const { prevListId, nextListId } = req.body;
+  const userId = req.user?.userId;
   const response = await ListController.reorderList(
     currentListId,
     prevListId as string,
-    nextListId as string
+    nextListId as string,
+    userId
   );
   return handleServiceResponse(response, res);
 });

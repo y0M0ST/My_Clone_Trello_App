@@ -785,7 +785,9 @@ route.post('/:id/invite/:inviteToken', async (req, res) => {
  *         description: Server error
  */
 route.get('/:boardId/lists', async (req, res) => {
-  const response = await ListController.getAllListsByBoard(req);
+  const boardId = req.params.boardId as string;
+  const isArchived = req.query.archived === 'true';
+  const response = await ListController.getAllListsByBoard(boardId, isArchived);
   return handleServiceResponse(response, res);
 });
 
@@ -828,7 +830,14 @@ route.post(
   '/:boardId/lists',
   validateRequest(CreateListSchema),
   async (req, res) => {
-    const response = await ListController.createList(req);
+    const boardId = req.params.boardId as string;
+    const currentUserId = req.user?.userId;
+    const { title } = req.body;
+    const response = await ListController.createList(
+      boardId,
+      title,
+      currentUserId
+    );
     return handleServiceResponse(response, res);
   }
 );

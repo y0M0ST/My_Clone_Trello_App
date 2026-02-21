@@ -9,9 +9,10 @@ import { ListService } from './list.service';
 const listService = new ListService();
 
 export class ListController {
-  static async getAllListsByBoard(req: Request) {
-    const boardId = req.params.boardId as string;
-    const isArchived = req.query.archived === 'true';
+  static async getAllListsByBoard(
+    boardId: string,
+    isArchived: boolean = false
+  ) {
     try {
       const lists = await listService.getAllListsByBoard(boardId, isArchived);
       return new ServiceResponse(
@@ -30,11 +31,12 @@ export class ListController {
     }
   }
 
-  static async createList(req: Request): Promise<ServiceResponse<any>> {
+  static async createList(
+    boardId: string,
+    title: string,
+    currentUserId?: string
+  ): Promise<ServiceResponse<any>> {
     try {
-      const boardId = req.params.boardId as string;
-      const currentUserId = req.user?.userId;
-      const { title } = req.body;
       if (!currentUserId) {
         return new ServiceResponse(
           ResponseStatus.Failed,
@@ -91,10 +93,11 @@ export class ListController {
     }
   }
 
-  static async archiveList(req: Request): Promise<ServiceResponse<any>> {
+  static async archiveList(
+    listId: string,
+    userId?: string
+  ): Promise<ServiceResponse<any>> {
     try {
-      const listId = req.params.id as string;
-      const userId = req.user?.userId;
       const result = await listService.archiveList(listId, userId);
       return new ServiceResponse(
         ResponseStatus.Success,
@@ -102,7 +105,7 @@ export class ListController {
         result,
         StatusCodes.OK
       );
-    } catch (error) {
+    } catch (error: any) {
       return new ServiceResponse(
         ResponseStatus.Failed,
         error.message,
@@ -112,10 +115,11 @@ export class ListController {
     }
   }
 
-  static async unarchiveList(req: Request): Promise<ServiceResponse<any>> {
+  static async unarchiveList(
+    listId: string,
+    userId?: string
+  ): Promise<ServiceResponse<any>> {
     try {
-      const listId = req.params.id as string;
-      const userId = req.user?.userId;
       const result = await listService.unarchiveList(listId, userId);
       return new ServiceResponse(
         ResponseStatus.Success,
@@ -123,7 +127,7 @@ export class ListController {
         result,
         StatusCodes.OK
       );
-    } catch (error) {
+    } catch (error: any) {
       return new ServiceResponse(
         ResponseStatus.Failed,
         error.message,
@@ -154,12 +158,13 @@ export class ListController {
     }
   }
 
-  static async moveListToBoard(req: Request): Promise<ServiceResponse<any>> {
+  static async moveListToBoard(
+    listId: string,
+    boardId: string,
+    position: number,
+    userId?: string
+  ): Promise<ServiceResponse<any>> {
     try {
-      const listId = req.params.id as string;
-      const { boardId, position } = req.body;
-      const userId = req.user?.userId;
-
       const result = await listService.moveListToBoard(
         listId,
         boardId,
@@ -172,7 +177,7 @@ export class ListController {
         result,
         StatusCodes.OK
       );
-    } catch (error) {
+    } catch (error: any) {
       return new ServiceResponse(
         ResponseStatus.Failed,
         error.message,
@@ -238,11 +243,13 @@ export class ListController {
     }
   }
 
-  static async reorderList(req: Request): Promise<ServiceResponse<any>> {
+  static async reorderList(
+    currentListId: string,
+    prevListId: string,
+    nextListId: string,
+    userId?: string
+  ): Promise<ServiceResponse<any>> {
     try {
-      const { currentListId, prevListId, nextListId } = req.body;
-      const userId = req.user?.userId;
-
       const result = await listService.reorderList(
         currentListId,
         prevListId,
@@ -255,7 +262,7 @@ export class ListController {
         result,
         StatusCodes.OK
       );
-    } catch (error) {
+    } catch (error: any) {
       return new ServiceResponse(
         ResponseStatus.Failed,
         error.message,
@@ -265,9 +272,10 @@ export class ListController {
     }
   }
 
-  static async updateList(req: Request): Promise<ServiceResponse<any>> {
-    const listId = req.params.id as string;
-    const updateData = req.body;
+  static async updateList(
+    listId: string,
+    updateData: any
+  ): Promise<ServiceResponse<any>> {
     try {
       const result = await listService.updateList(listId, updateData);
       return new ServiceResponse(
@@ -276,7 +284,7 @@ export class ListController {
         result,
         StatusCodes.OK
       );
-    } catch (error) {
+    } catch (error: any) {
       return new ServiceResponse(
         ResponseStatus.Failed,
         error.message,
