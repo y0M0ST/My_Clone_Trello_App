@@ -477,6 +477,88 @@ export class BoardService {
     return roleName === ROLES.BOARD_OWNER || roleName === ROLES.BOARD_ADMIN;
   }
 
+  /** Chỉ Owner/Admin được đổi vai trò (không áp all_members cho thành viên thường). */
+  private canActorChangeBoardMemberRoles(roleName: string): boolean {
+    return roleName === ROLES.BOARD_OWNER || roleName === ROLES.BOARD_ADMIN;
+  }
+
+  async updateBoardMemberRole(
+    boardId: string,
+    targetUserId: string,
+    roleId: string,
+    currentUserId: string
+  ) {
+    const board = await this.boardRepository.findOne({
+      where: { id: boardId },
+    });
+    if (!board) throw new Error('Board not found');
+
+    const [currentMember, targetMember, newRole] = await Promise.all([
+      this.boardMemberRepository.findOne({
+        where: { boardId, userId: currentUserId },
+        relations: ['role'],
+      }),
+      this.boardMemberRepository.findOne({
+        where: { boardId, userId: targetUserId },
+        relations: ['role'],
+      }),
+      this.roleRepository.findOne({ where: { id: roleId } }),
+    ]);
+
+    if (!currentMember) throw new Error('You are not a member of this board');
+    if (!this.canActorChangeBoardMemberRoles(currentMember.role.name)) {
+      throw new Error('Only board owner or admin can change member roles');
+    }
+    if (!targetMember) throw new Error('Member not found in this board');
+    if (!newRole) throw new Error('Role not found');
+
+    const assignableBoardRoles = new Set<string>([
+      ROLES.BOARD_ADMIN,
+      ROLES.BOARD_MEMBER,
+      ROLES.BOARD_OBSERVER,
+    ]);
+    if (!assignableBoardRoles.has(newRole.name)) {
+      throw new Error('Invalid role for board member');
+    }
+
+    if (targetMember.role.name === ROLES.BOARD_OWNER) {
+      throw new Error('Cannot change role of board owner');
+    }
+
+    if (
+      currentMember.role.name === ROLES.BOARD_ADMIN &&
+      targetMember.role.name === ROLES.BOARD_ADMIN
+    ) {
+      throw new Error('Only board owner can change another admin role');
+    }
+
+    if (targetMember.userId === currentUserId) {
+      throw new Error('Cannot change your own role');
+    }
+
+    if (targetMember.roleId === newRole.id) {
+      throw new Error('Member already has this role');
+    }
+
+    await this.boardMemberRepository
+      .createQueryBuilder()
+      .update(BoardMembers)
+      .set({ roleId: newRole.id })
+      .where('boardId = :boardId AND userId = :userId', {
+        boardId,
+        userId: targetUserId,
+      })
+      .execute();
+
+    await rbacProvider.clearCache(targetUserId, boardId);
+    emitBoardChanged(boardId, 'member_role_updated');
+
+    return {
+      message: 'Member role updated successfully',
+      roleName: newRole.name,
+    };
+  }
+
   async getBoardOwner(boardId: string) {
     const ownerRole = await this.roleRepository.findOne({
       where: { name: ROLES.BOARD_OWNER },

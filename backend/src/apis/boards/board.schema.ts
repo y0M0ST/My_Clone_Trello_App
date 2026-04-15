@@ -6,3 +6,11 @@ export const addMemberToBoardSchema = z.object({
 });
 
 export type AddBoardMemberInput = z.infer<typeof addMemberToBoardSchema>;
+
+export const updateBoardMemberRoleSchema = z.object({
+  roleId: z.uuid(),
+});
+
+export type UpdateBoardMemberRoleInput = z.infer<
+  typeof updateBoardMemberRoleSchema
+>;

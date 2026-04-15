@@ -101,6 +101,14 @@ export const boardApi = {
         return apiFactory.delete(`/boards/${boardId}/members/${userId}`);
     },
 
+    /** Đổi vai trò thành viên (PATCH /boards/:id/members/:userId/role) */
+    updateMemberRole: (boardId: string, userId: string, roleId: string) => {
+        return apiFactory.patch<{ roleName?: string }>(
+            `/boards/${boardId}/members/${userId}/role`,
+            { roleId }
+        );
+    },
+
     updateCover: (boardId: string, file: File) => {
         const formData = new FormData();
         formData.append('cover', file);

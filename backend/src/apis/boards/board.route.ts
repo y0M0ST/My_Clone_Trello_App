@@ -13,7 +13,10 @@ import {
 } from '@/common/middleware/authorization';
 import { boardCoverUpload } from '@/config/multer';
 import { PERMISSIONS } from '@/common/constants/permissions';
-import { addMemberToBoardSchema } from './board.schema';
+import {
+  addMemberToBoardSchema,
+  updateBoardMemberRoleSchema,
+} from './board.schema';
 import { ROLES } from '@/common/constants';
 import authenticateJWT from '@/common/middleware/authentication';
 import { ListController } from '../lists/list.controller';
@@ -1081,6 +1084,27 @@ route.delete('/:id/members/:userId', authenticateJWT, async (req, res) => {
   const serviceResponse = await BoardController.removeMemberFromBoard(req);
   return handleServiceResponse(serviceResponse, res);
 });
+
+/**
+ * @swagger
+ * /boards/{id}/members/{userId}/role:
+ *   patch:
+ *     tags:
+ *       - Boards
+ *     summary: Cập nhật vai trò thành viên trên bảng
+ *     description: Owner/Admin đổi role (không đổi owner; admin khác chỉ owner mới chỉnh được).
+ *     security:
+ *       - bearerAuth: []
+ */
+route.patch(
+  '/:id/members/:userId/role',
+  authenticateJWT,
+  validateHandle(updateBoardMemberRoleSchema),
+  async (req, res) => {
+    const serviceResponse = await BoardController.updateBoardMemberRole(req);
+    return handleServiceResponse(serviceResponse, res);
+  }
+);
 
 /**
  * @swagger

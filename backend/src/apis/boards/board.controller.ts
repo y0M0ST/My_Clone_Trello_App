@@ -718,6 +718,87 @@ export class BoardController {
     }
   }
 
+  static async updateBoardMemberRole(
+    req: Request
+  ): Promise<ServiceResponse<any>> {
+    try {
+      const boardId = req.params.id as string;
+      const targetUserId = req.params.userId as string;
+      const currentUserId = req.user?.userId;
+      const { roleId } = req.body as { roleId: string };
+
+      if (!targetUserId || !roleId || !currentUserId) {
+        return new ServiceResponse(
+          ResponseStatus.Failed,
+          'userId and roleId are required',
+          null,
+          StatusCodes.BAD_REQUEST
+        );
+      }
+
+      const result = await boardService.updateBoardMemberRole(
+        boardId,
+        targetUserId,
+        roleId,
+        currentUserId
+      );
+
+      return new ServiceResponse(
+        ResponseStatus.Success,
+        result.message,
+        { roleName: result.roleName },
+        StatusCodes.OK
+      );
+    } catch (error: any) {
+      if (
+        error.message === 'Board not found' ||
+        error.message === 'Member not found in this board' ||
+        error.message === 'Role not found'
+      ) {
+        return new ServiceResponse(
+          ResponseStatus.Failed,
+          error.message,
+          null,
+          StatusCodes.NOT_FOUND
+        );
+      }
+
+      if (
+        error.message.includes('You are not a member') ||
+        error.message.includes('Only board owner or admin') ||
+        error.message.includes('Only board owner can change another admin') ||
+        error.message.includes('Cannot change role of board owner') ||
+        error.message.includes('Cannot change your own role')
+      ) {
+        return new ServiceResponse(
+          ResponseStatus.Failed,
+          error.message,
+          null,
+          StatusCodes.FORBIDDEN
+        );
+      }
+
+      if (
+        error.message === 'Member already has this role' ||
+        error.message === 'Invalid role for board member'
+      ) {
+        return new ServiceResponse(
+          ResponseStatus.Failed,
+          error.message,
+          null,
+          StatusCodes.BAD_REQUEST
+        );
+      }
+
+      return new ServiceResponse(
+        ResponseStatus.Failed,
+        error.message || 'Error updating member role',
+        null,
+        StatusCodes.BAD_REQUEST
+      );
+    }
+  }
+
   static async getCards(req: Request): Promise<ServiceResponse<any>> {
     try {
       const boardId =

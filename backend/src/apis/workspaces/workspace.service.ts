@@ -15,9 +15,8 @@ import { ROLES } from '../../common/constants';
 import { validateEmail } from '@/common/utils/validateEmail';
 import { redisClient } from '@/config/redisClient';
 import { rbacProvider } from '@/common/utils/rbac';
-import nodemailer from 'nodemailer';
 import { v4 as uuidv4 } from 'uuid';
-import { assertSmtpConfigured } from '../mail/mail.service';
+import { assertResendMailConfigured, EmailService } from '../mail/mail.service';
 import { BoardMembers } from '../../common/entities/board-member.entity';
 import { Board } from '../../common/entities/board.entity';
 
@@ -29,18 +28,7 @@ export class WorkspaceService {
   private roleRepository = AppDataSource.getRepository(Role);
   private boardMemberRepository = AppDataSource.getRepository(BoardMembers);
   private boardRepository = AppDataSource.getRepository(Board);
-  private transporter;
-
-  constructor() {
-    this.transporter = nodemailer.createTransport({
-      host: 'smtp.gmail.com',
-      port: 587,
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-    });
-  }
+  private emailService = new EmailService();
 
   async createWorkspace(userId: string, data: createWorkspaceDto) {
     const [user, adminRole] = await Promise.all([
@@ -729,7 +717,7 @@ export class WorkspaceService {
       throw new Error('Only workspace admin or moderator can invite members');
     }
 
-    assertSmtpConfigured();
+    assertResendMailConfigured();
 
     // Check if user exists
     const user = await this.userRepository.findOne({
@@ -776,8 +764,7 @@ export class WorkspaceService {
       await this.workspaceMemberRepository.save(newMember);
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
       // Send notification email
-      await this.transporter.sendMail({
-        from: `"Task Manager" <${process.env.SMTP_USER}>`,
+      await this.emailService.sendHtmlMail({
         to: data.email,
         subject: `You've been added to ${workspace.title}`,
         html: `
@@ -819,8 +806,7 @@ export class WorkspaceService {
     // Send invitation email
     const invitationLink = `${frontendUrl}/accept-invitation?token=${invitationToken}`;
 
-    await this.transporter.sendMail({
-      from: `"Task Manager" <${process.env.SMTP_USER}>`,
+    await this.emailService.sendHtmlMail({
       to: data.email,
       subject: `You've been invited to ${workspace.title}`,
       html: `
