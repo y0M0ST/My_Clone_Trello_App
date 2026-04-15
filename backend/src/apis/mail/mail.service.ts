@@ -1,4 +1,47 @@
 import nodemailer from 'nodemailer';
+
+/** Gọi trước khi gửi mail — production hay quên env nên lỗi khó đoán */
+export function assertSmtpConfigured(): void {
+  const user = process.env.SMTP_USER?.trim();
+  const pass = process.env.SMTP_PASS?.trim();
+  if (!user || !pass) {
+    throw new Error(
+      'Chưa cấu hình SMTP_USER / SMTP_PASS trên server (bắt buộc để gửi email mời, OTP, v.v.).'
+    );
+  }
+}
+
+/** Rút gọn lỗi Nodemailer để trả về API (không lộ secret) */
+export function formatMailSendError(err: unknown): string {
+  if (!err || typeof err !== 'object') return '';
+  const e = err as { code?: string; message?: string; responseCode?: number };
+  const msg = String(e.message || '');
+  const lower = msg.toLowerCase();
+
+  if (
+    lower.includes('invalid login') ||
+    lower.includes('535') ||
+    lower.includes('authentication failed')
+  ) {
+    return 'Đăng nhập SMTP thất bại — kiểm tra SMTP_USER và SMTP_PASS (Gmail: dùng App Password, không dùng mật khẩu tài khoản thường).';
+  }
+  if (lower.includes('self signed') || lower.includes('certificate')) {
+    return 'Lỗi chứng chỉ TLS khi kết nối SMTP.';
+  }
+  if (
+    e.code === 'ETIMEDOUT' ||
+    e.code === 'ECONNECTION' ||
+    e.code === 'ECONNREFUSED'
+  ) {
+    return 'Không kết nối được máy chủ SMTP (port 587 có thể bị hosting chặn outbound — thử SendGrid/Mailgun API hoặc mở firewall).';
+  }
+  if (lower.includes('greeting') || lower.includes('timeout')) {
+    return 'SMTP không phản hồi kịp (timeout).';
+  }
+  const trimmed = msg.replace(/\s+/g, ' ').trim();
+  return trimmed.length > 200 ? `${trimmed.slice(0, 200)}…` : trimmed;
+}
+
 interface BoardInvitationEmailOptions {
   to: string;
   boardTitle: string;
@@ -32,6 +75,7 @@ export class EmailService {
   }
 
   async sendVerificationEmail(email: string, otp: string) {
+    assertSmtpConfigured();
     await this.transporter.sendMail({
       from: `"TaskFlow" <${process.env.SMTP_USER}>`,
       to: email,
@@ -49,6 +93,7 @@ export class EmailService {
   }
 
   async sendForgotPasswordEmail(email: string, code: string) {
+    assertSmtpConfigured();
     try {
       const info = await this.transporter.sendMail({
         from: `"TaskFlow" <${process.env.SMTP_USER}>`,
@@ -67,6 +112,7 @@ export class EmailService {
   }
 
   async sendBoardInvitationEmail(options: BoardInvitationEmailOptions) {
+    assertSmtpConfigured();
     const { to, boardTitle, inviterName, roleName, link, declineLink } = options;
     const acceptLink = link || `${process.env.FRONTEND_URL || 'http://localhost:5173'}/boards`;
 

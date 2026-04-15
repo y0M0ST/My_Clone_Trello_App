@@ -7,13 +7,14 @@ import { CreateBoardDto, UpdateBoardDto } from './board.dto';
 import { Role } from '@/common/entities/role.entity';
 import { BoardMembers } from '@/common/entities/board-member.entity';
 import { ROLES } from '@/common/constants/roles';
-import { EmailService } from '../mail/mail.service';
+import { EmailService, formatMailSendError } from '../mail/mail.service';
 import { rbacProvider } from '@/common/utils/rbac';
 import crypto from 'crypto';
 import { AddBoardMemberInput } from './board.schema';
 import { Card } from '@/common/entities/card.entity';
 import { Label } from '@/common/entities/label.entity';
 import { List } from '@/common/entities/list.entity';
+import { emitBoardChanged } from '@/realtime/boardSocket';
 
 export class BoardService {
   private boardRepository = AppDataSource.getRepository(Board);
@@ -327,12 +328,14 @@ export class BoardService {
       await this.boardMemberRepository.remove(newMember);
       await rbacProvider.clearCache(user.id, boardId);
       console.error('[invite] sendBoardInvitationEmail failed:', err);
+      const hint = formatMailSendError(err);
       throw new Error(
-        'Không gửi được email mời (SMTP hoặc địa chỉ không hợp lệ). Thành viên tạm chưa được thêm.'
+        `Không gửi được email mời. Thành viên chưa được thêm.${hint ? ` Chi tiết: ${hint}` : ''}`
       );
     }
 
     await rbacProvider.clearCache(user.id, boardId);
+    emitBoardChanged(board.id, 'member_invited');
 
     return {
       message: 'Member added to board successfully',

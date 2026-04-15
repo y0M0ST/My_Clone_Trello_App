@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import express from 'express';
+import http from 'http';
 import { setupSwagger } from './config/swagger';
 // import * as dotenv from 'dotenv'; // Removed as we use 'dotenv/config'
 import { AppDataSource } from './config/data-source';
@@ -7,6 +8,7 @@ import AppRoute from './apis/index';
 import { connectRedis } from './config/redisClient';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
+import { attachBoardSocket } from './realtime/boardSocket';
 
 // dotenv.config(); // Loaded at top via import 'dotenv/config'
 
@@ -26,6 +28,9 @@ app.get('/ping', (req, res) => {
 });
 app.use('', AppRoute);
 
+const httpServer = http.createServer(app);
+attachBoardSocket(httpServer);
+
 AppDataSource.initialize()
   .then(() => {
     console.log('Data Source has been initialized');
@@ -40,6 +45,6 @@ connectRedis().catch((err) => {
 
 setupSwagger(app);
 
-app.listen(PORT, () => {
+httpServer.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
 });

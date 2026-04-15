@@ -8,6 +8,7 @@ import { Permission } from '@/common/entities/permission.entity';
 import { checkCommentPermissionForUser } from '@/common/utils/commentPolicy';
 import { PERMISSIONS } from '@/common/constants/permissions';
 import { In } from 'typeorm';
+import { emitBoardChanged } from '@/realtime/boardSocket';
 
 export class CommentService {
   private commentRepo = AppDataSource.getRepository(Comment);
@@ -79,7 +80,9 @@ export class CommentService {
       author: user,
     } as any);
 
-    return this.commentRepo.save(comment);
+    const saved = await this.commentRepo.save(comment);
+    emitBoardChanged(boardId, 'comment_created');
+    return saved;
   }
 
   async getCommentsByCard(cardId: string) {
@@ -143,7 +146,9 @@ export class CommentService {
 
     (comment as any).content = content ?? (comment as any).content;
 
-    return this.commentRepo.save(comment);
+    const saved = await this.commentRepo.save(comment);
+    emitBoardChanged(boardId, 'comment_updated');
+    return saved;
   }
 
   async deleteComment(commentId: string, userId: string) {
@@ -184,5 +189,6 @@ export class CommentService {
     }
 
     await this.commentRepo.remove(comment);
+    emitBoardChanged(boardId, 'comment_deleted');
   }
 }

@@ -68,6 +68,7 @@ import { InviteMemberDialog } from "@/features/board/InviteMemberDialog";
 import { ManageMembersDialog } from "@/features/board/ManageMembersDialog";
 import { BackgroundPicker } from "@/features/board/BackgroundPicker";
 import { tokenStorage } from "@/shared/utils/tokenStorage";
+import { subscribeBoardRealtime } from "@/shared/realtime/boardSocket";
 import { cardApi } from "@/shared/api/card.api";
 import { CardDetailDialog } from "./CardDetailDialog";
 import { BoardInfoDialog } from "@/features/board/components/board-menu/BoardInfoDialog";
@@ -202,6 +203,15 @@ const BoardPage = () => {
         void fetchBoardData(ac.signal);
         return () => ac.abort();
     }, [fetchBoardData]);
+
+    /** Đồng bộ real-time: kéo list / thẻ / comment từ tab khác hoặc thành viên khác */
+    useEffect(() => {
+        if (!boardId || loading) return;
+        const unsub = subscribeBoardRealtime(boardId, () => {
+            void fetchBoardData();
+        });
+        return unsub;
+    }, [boardId, loading, fetchBoardData]);
 
     // Sync selectedCard when board data updates
     useEffect(() => {

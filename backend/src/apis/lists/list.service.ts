@@ -4,6 +4,7 @@ import { BoardMembers } from '@/common/entities/board-member.entity';
 import { List } from '@/common/entities/list.entity';
 import { BoardRepository } from '../boards/board.repository';
 import { boardActivityService } from '@/apis/boards/board-activity.service';
+import { emitBoardChanged } from '@/realtime/boardSocket';
 
 export class ListService {
   private listRepository = new ListRepository();
@@ -334,6 +335,7 @@ export class ListService {
       });
     }
 
+    emitBoardChanged(currentList.boardId, 'list_reorder');
     return result;
   }
 

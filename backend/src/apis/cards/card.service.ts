@@ -4,6 +4,7 @@ import { NotificationService } from '@/apis/notification/notification.service';
 import { NotificationType } from '@/common/entities/notification.entity';
 import { boardActivityService } from '../boards/board-activity.service';
 import { checkCommentPermissionForUser } from '@/common/utils/commentPolicy';
+import { emitBoardChanged } from '@/realtime/boardSocket';
 
 export class CardService {
   private cardRepository = new CardRepository();
@@ -770,6 +771,7 @@ export class CardService {
         });
       }
 
+      emitBoardChanged(cardToMove.boardId, 'card_move');
       return { ...cardToMove, position: nextIndex };
     } else {
       const cardsInPrevList =
@@ -819,6 +821,7 @@ export class CardService {
         });
       }
 
+      emitBoardChanged(cardToMove.boardId, 'card_move');
       return { ...cardToMove, listId: nextColumnId, position: nextIndex };
     }
   }
