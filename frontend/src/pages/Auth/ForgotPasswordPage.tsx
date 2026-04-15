@@ -6,6 +6,7 @@ import { Label } from "@/shared/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
 import { PasswordInput } from "@/shared/ui/password-input"; 
 import { apiFactory, API_ENDPOINTS } from "@/shared/api";
+import { passwordFieldSchema } from "@/shared/validation/password";
 import { ArrowLeft, CheckCircle2 } from "lucide-react";
 
 export const ForgotPasswordPage = () => {
@@ -48,13 +49,19 @@ export const ForgotPasswordPage = () => {
             return;
         }
 
+        const pwdCheck = passwordFieldSchema.safeParse(newPassword);
+        if (!pwdCheck.success) {
+            setError(pwdCheck.error.issues[0]?.message ?? "Mật khẩu không đủ mạnh.");
+            return;
+        }
+
         setIsLoading(true);
 
         try {
             await apiFactory.post(API_ENDPOINTS.AUTH.RESET_PASSWORD, {
                 email,
-                otp,
-                password: newPassword
+                code: otp,
+                newPassword,
             });
 
             setSuccess(true);
@@ -147,7 +154,7 @@ export const ForgotPasswordPage = () => {
                                             <PasswordInput
                                                 value={newPassword}
                                                 onChange={(e) => setNewPassword(e.target.value)}
-                                                placeholder="Min 6 characters"
+                                                placeholder="Ít nhất 8 ký tự, hoa, thường, số hoặc ký tự đặc biệt"
                                                 className="bg-white/5 border-white/20 text-white placeholder-gray-400"
                                                     required
                                                     autoComplete="new-password"

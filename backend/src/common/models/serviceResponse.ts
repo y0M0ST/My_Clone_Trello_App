@@ -11,7 +11,7 @@ export class ServiceResponse<T = null> {
   message: string;
   responseObject: T;
   statusCode: number;
-
+ 
   constructor(
     status: ResponseStatus,
     message: string,

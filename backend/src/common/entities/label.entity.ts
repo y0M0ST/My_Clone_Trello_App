@@ -19,7 +19,7 @@ export class Label extends DateTimeEntity {
 
   @Column({ type: 'uuid' })
   boardId: string;
-  @ManyToOne(() => Board, (board) => board.labels)
+  @ManyToOne(() => Board, (board) => board.labels, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'boardId' })
   public board: Board;
 

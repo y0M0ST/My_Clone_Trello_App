@@ -2,6 +2,7 @@ import { lazy, Suspense } from "react";
 import { Route, Routes, Navigate } from "react-router-dom";
 import { ROUTES } from "@/shared/config";
 import { PageLoader } from "@/shared/components/Loader";
+import { RequireAuth } from "@/app/router/RequireAuth";
 import { VerifyPage } from "@/pages/RegisterPage/VerifyPage";
 import { ForgotPasswordPage } from "@/pages/Auth/ForgotPasswordPage";
 import { ResetPasswordPage } from "@/pages/Auth/ResetPasswordPage";
@@ -35,17 +36,17 @@ export const AppRouter = () => {
             <Routes>
                 <Route path={ROUTES.HOME} element={<Navigate to={ROUTES.LOGIN} replace />} />
                 <Route path={ROUTES.LOGIN} element={<LoginPage />} />
-                <Route path={ROUTES.DASHBOARD} element={<DashboardPage />} />
+                <Route path={ROUTES.DASHBOARD} element={<RequireAuth><DashboardPage /></RequireAuth>} />
                 <Route path="/register" element={<RegisterPage />} />
-                <Route path="/profile" element={<ProfilePage />} />
-                <Route path="/profile/edit" element={<ProfileEditPage />} />
+                <Route path="/profile" element={<RequireAuth><ProfilePage /></RequireAuth>} />
+                <Route path="/profile/edit" element={<RequireAuth><ProfileEditPage /></RequireAuth>} />
                 <Route path="/verify" element={<VerifyPage />} />
                 <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                 <Route path="/reset-password" element={<ResetPasswordPage />} />
                 <Route path="/auth/google/callback" element={<GoogleCallbackPage />} />
-                <Route path="/archives" element={<ArchivesPage />} />
-                <Route path="/settings" element={<SettingsPage />} />
-                <Route path="/boards/:boardId" element={<BoardPage />} />
+                <Route path="/archives" element={<RequireAuth><ArchivesPage /></RequireAuth>} />
+                <Route path="/settings" element={<RequireAuth><SettingsPage /></RequireAuth>} />
+                <Route path="/boards/:boardId" element={<RequireAuth><BoardPage /></RequireAuth>} />
                 <Route path="/invite/accept" element={<InviteResponsePage />} />
                 <Route path="/invite/decline" element={<InviteResponsePage />} />
             </Routes>

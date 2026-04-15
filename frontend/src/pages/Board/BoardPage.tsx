@@ -152,8 +152,21 @@ const BoardPage = () => {
     const fetchBoardData = useCallback(async () => {
         if (!boardId) return;
         try {
-            const response: any = await boardApi.getDetail(boardId);
-            const boardData = response.responseObject || response.data || response;
+            const invite = new URLSearchParams(window.location.search).get("invite");
+            if (invite) {
+                try {
+                    await boardApi.joinBoardByInvite(boardId, invite);
+                    toast.success("Đã tham gia bảng qua link mời");
+                } catch (joinErr: unknown) {
+                    const ax = joinErr as { response?: { data?: { message?: string } } };
+                    toast.error(ax.response?.data?.message || "Link mời không hợp lệ hoặc đã hết hạn");
+                }
+                navigate(`/boards/${boardId}`, { replace: true });
+            }
+
+            const response: unknown = await boardApi.getDetail(boardId);
+            const res = response as { responseObject?: BoardDetail; data?: BoardDetail };
+            const boardData = res.responseObject || res.data || (response as BoardDetail);
 
             // if (boardData.lists) {
             //     boardData.lists.sort((a: any, b: any) => a.position - b.position);
@@ -526,8 +539,9 @@ const BoardPage = () => {
             await boardApi.deletePermanently(board!.id);
             toast.success("Đã xóa bảng vĩnh viễn");
             navigate("/dashboard");
-        } catch (error) {
-            toast.error("Lỗi khi xóa bảng");
+        } catch (error: unknown) {
+            const ax = error as { response?: { data?: { message?: string } } };
+            toast.error(ax.response?.data?.message || "Lỗi khi xóa bảng (kiểm tra quyền Owner hoặc ràng buộc dữ liệu)");
         }
     };
 
@@ -679,7 +693,13 @@ const BoardPage = () => {
                                 </BackgroundPicker>
                             )}
                             {canManageMembers && (
-                                <ManageMembersDialog boardId={boardId!} members={board.members} onUpdate={fetchBoardData}>
+                                <ManageMembersDialog
+                                    boardId={boardId!}
+                                    members={board.members}
+                                    hasInviteLink={Boolean(board.hasInviteLink)}
+                                    canManageInviteLink={isOwnerOrAdmin}
+                                    onUpdate={fetchBoardData}
+                                >
                                     <DropdownMenuItem onSelect={(e) => e.preventDefault()}> <Users className="mr-2 h-4 w-4" /> Quản lý thành viên </DropdownMenuItem>
                                 </ManageMembersDialog>
                             )}

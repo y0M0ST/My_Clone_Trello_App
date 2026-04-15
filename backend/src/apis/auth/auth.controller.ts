@@ -22,14 +22,6 @@ export class AuthController {
                 StatusCodes.BAD_REQUEST
             );
         }
-        if (data.password.length < 6) {
-            return new ServiceResponse(
-                ResponseStatus.Failed,
-                'Password must be at least 6 characters',
-                null,
-                StatusCodes.BAD_REQUEST
-            );
-        }
 
         try {
             const result = await authService.register(data);

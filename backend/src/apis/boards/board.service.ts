@@ -137,6 +137,7 @@ export class BoardService {
         coverUrl: true,
         visibility: true,
         isClosed: true,
+        inviteToken: true,
         commentPolicy: true,
         memberManagePolicy: true,
         createdAt: true,
@@ -198,8 +199,11 @@ export class BoardService {
     // Filter out archived lists
     board.lists = board.lists.filter(list => !list.isArchived);
 
+    const { inviteToken, ...boardWithoutSecret } = board;
+
     const transformedBoard = {
-      ...board,
+      ...boardWithoutSecret,
+      hasInviteLink: Boolean(inviteToken),
       members: board.boardMembers.map((bm) => ({
         id: bm.user.id,
         name: bm.user.name,
@@ -362,7 +366,10 @@ export class BoardService {
         inviteToken: inviteToken,
       }
     );
-    const linkInvite = `${process.env.BACKEND_URL}/boards/${boardId}/invite/${inviteToken}`;
+    const appBase =
+      process.env.FRONTEND_URL || process.env.CLIENT_URL || process.env.BACKEND_URL || '';
+    const base = appBase.replace(/\/$/, '');
+    const linkInvite = `${base}/boards/${boardId}?invite=${inviteToken}`;
     return {
       message: 'Invite link created successfully',
       link: linkInvite,
@@ -635,6 +642,8 @@ export class BoardService {
       where: { id },
     });
     if (!board) throw new Error('Board not found');
+    // Labels historically had no ON DELETE CASCADE on FK — remove explicitly so delete always succeeds.
+    await this.labelRepository.delete({ boardId: id });
     await this.boardRepository.remove(board);
     return { message: 'Board deleted permanently' };
   }

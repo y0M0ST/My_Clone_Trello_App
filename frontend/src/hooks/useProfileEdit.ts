@@ -13,9 +13,6 @@ export const useProfileEdit = () => {
     const [error, setError] = useState<string | null>(null);
 
     const updateProfile = async (data: { name: string; bio: string; avatar?: FileList }) => {
-        // console.log("🔥 KẾT QUẢ FORM GỬI SANG:", data);
-        // console.log("🔥 Check Avatar:", data.avatar);
-        // console.log("🔥 Check Length:", data.avatar?.length);
         setError(null);
         setIsLoading(true);
 

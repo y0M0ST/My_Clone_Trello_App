@@ -50,6 +50,13 @@ export interface BoardDetail {
     labels: { id: string; name: string; color: string }[];
     commentPolicy: 'disabled' | 'members' | 'workspace' | 'anyone';
     memberManagePolicy: 'admins_only' | 'all_members';
+    /** Server: có link mời thành viên đang bật (không trả raw token) */
+    hasInviteLink?: boolean;
+}
+
+export interface GenerateInviteLinkResult {
+    message: string;
+    link: string;
 }
 
 export const boardApi = {
@@ -71,6 +78,21 @@ export const boardApi = {
 
     deletePermanently: (id: string) => {
         return apiFactory.delete(`/boards/${id}`);
+    },
+
+    /** Tạo / làm mới link mời (POST /boards/:id/generate-link) */
+    generateInviteLink: (boardId: string) => {
+        return apiFactory.post<GenerateInviteLinkResult>(`/boards/${boardId}/generate-link`);
+    },
+
+    /** Xóa link mời (DELETE /boards/:id/invite-link) */
+    deleteInviteLink: (boardId: string) => {
+        return apiFactory.delete(`/boards/${boardId}/invite-link`);
+    },
+
+    /** Tham gia bảng qua token trong link (POST /boards/:id/invite/:token) */
+    joinBoardByInvite: (boardId: string, inviteToken: string) => {
+        return apiFactory.post(`/boards/${boardId}/invite/${inviteToken}`);
     },
 
     removeMember: (boardId: string, userId: string) => {

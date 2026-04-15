@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
     Dialog,
     DialogContent,
@@ -9,7 +9,7 @@ import {
 } from "@/shared/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/shared/ui/avatar";
 import { Button } from "@/shared/ui/button";
-import { UserX, Loader2, Plus } from "lucide-react";
+import { UserX, Loader2, Plus, Link2, Copy, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { boardApi, type Member } from "@/shared/api/board.api";
 import { tokenStorage } from "@/shared/utils/tokenStorage";
@@ -18,13 +18,36 @@ import { InviteMemberDialog } from "./InviteMemberDialog";
 interface ManageMembersDialogProps {
     boardId: string;
     members: Member[];
+    /** Board đang có invite token (từ GET board) */
+    hasInviteLink?: boolean;
+    /** Owner/Admin: tạo & thu hồi link (khớp MEMBERS_INVITE / MEMBERS_MANAGE) */
+    canManageInviteLink?: boolean;
     onUpdate: () => void;
     children?: React.ReactNode;
 }
 
-export function ManageMembersDialog({ boardId, members, onUpdate, children }: ManageMembersDialogProps) {
+function unwrapInvitePayload(data: unknown): { link?: string; message?: string } {
+    const d = data as { responseObject?: { link?: string; message?: string }; link?: string; message?: string };
+    if (d?.responseObject && typeof d.responseObject === "object") return d.responseObject;
+    return d ?? {};
+}
+
+export function ManageMembersDialog({
+    boardId,
+    members,
+    hasInviteLink = false,
+    canManageInviteLink = false,
+    onUpdate,
+    children,
+}: ManageMembersDialogProps) {
     const [open, setOpen] = useState(false);
     const [loadingId, setLoadingId] = useState<string | null>(null);
+    const [shareBusy, setShareBusy] = useState(false);
+    const [localHasLink, setLocalHasLink] = useState(hasInviteLink);
+
+    useEffect(() => {
+        setLocalHasLink(hasInviteLink);
+    }, [hasInviteLink, open]);
     const currentUser = tokenStorage.getUser();
 
     const getInitials = (name: string) => {
@@ -44,10 +67,48 @@ export function ManageMembersDialog({ boardId, members, onUpdate, children }: Ma
             await boardApi.removeMember(boardId, userId);
             toast.success("Đã xóa thành viên thành công");
             onUpdate();
-        } catch (error: any) {
-            toast.error(error.response?.data?.message || "Lỗi xóa thành viên");
+        } catch (error: unknown) {
+            const ax = error as { response?: { data?: { message?: string } } };
+            toast.error(ax.response?.data?.message || "Lỗi xóa thành viên");
         } finally {
             setLoadingId(null);
+        }
+    };
+
+    const handleGenerateAndCopyLink = async () => {
+        setShareBusy(true);
+        try {
+            const raw = await boardApi.generateInviteLink(boardId);
+            const { link } = unwrapInvitePayload(raw);
+            if (link) {
+                await navigator.clipboard.writeText(link);
+                toast.success("Đã tạo link và sao chép vào clipboard");
+                setLocalHasLink(true);
+            } else {
+                toast.error("Không nhận được link từ server");
+            }
+            onUpdate();
+        } catch (error: unknown) {
+            const ax = error as { response?: { data?: { message?: string } } };
+            toast.error(ax.response?.data?.message || "Không tạo được link mời");
+        } finally {
+            setShareBusy(false);
+        }
+    };
+
+    const handleRevokeInviteLink = async () => {
+        if (!confirm("Thu hồi link mời? Người khác sẽ không thể dùng link cũ nữa.")) return;
+        setShareBusy(true);
+        try {
+            await boardApi.deleteInviteLink(boardId);
+            toast.success("Đã thu hồi link mời");
+            setLocalHasLink(false);
+            onUpdate();
+        } catch (error: unknown) {
+            const ax = error as { response?: { data?: { message?: string } } };
+            toast.error(ax.response?.data?.message || "Không thu hồi được link");
+        } finally {
+            setShareBusy(false);
         }
     };
 
@@ -123,6 +184,42 @@ export function ManageMembersDialog({ boardId, members, onUpdate, children }: Ma
                         <p className="text-center text-gray-500 text-sm py-4">Chưa có thành viên nào.</p>
                     )}
                 </div>
+
+                {canManageInviteLink && (
+                    <div className="pt-4 mt-2 border-t space-y-2">
+                        <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                            <Link2 className="h-3.5 w-3.5" /> Link mời vào bảng
+                        </p>
+                        <p className="text-[11px] text-muted-foreground">
+                            Người nhận link cần đăng nhập, mở link rồi hệ thống sẽ thêm họ vào bảng.
+                        </p>
+                        <div className="flex flex-col gap-2">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="w-full gap-2"
+                                disabled={shareBusy}
+                                onClick={() => void handleGenerateAndCopyLink()}
+                            >
+                                <Copy className="h-4 w-4" />
+                                {shareBusy ? "Đang xử lý..." : "Tạo / làm mới link và sao chép"}
+                            </Button>
+                            {localHasLink && (
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="w-full gap-2 text-destructive hover:text-destructive"
+                                    disabled={shareBusy}
+                                    onClick={() => void handleRevokeInviteLink()}
+                                >
+                                    <Trash2 className="h-4 w-4" /> Thu hồi link hiện tại
+                                </Button>
+                            )}
+                        </div>
+                    </div>
+                )}
 
                 <div className="pt-4 mt-2 border-t flex justify-center">
                     <InviteMemberDialog boardId={boardId} onSuccess={onUpdate}>
