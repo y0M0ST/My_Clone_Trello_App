@@ -94,12 +94,10 @@ interface BoardInvitationEmailOptions {
 }
 
 export class EmailService {
-  private resend: Resend;
-
-  constructor() {
-    this.resend = new Resend(process.env.RESEND_API_KEY?.trim() || '');
-  }
-
+  /**
+   * Không gọi `new Resend()` trong constructor: SDK ném nếu key rỗng,
+   * và trên Render biến môi trường có thể chưa cần thiết để process khởi động.
+   */
   /** Gửi HTML tùy ý (workspace invite, v.v.). */
   async sendHtmlMail(params: {
     to: string;
@@ -107,7 +105,8 @@ export class EmailService {
     html: string;
   }): Promise<void> {
     assertResendMailConfigured();
-    const { data, error } = await this.resend.emails.send({
+    const resend = new Resend(process.env.RESEND_API_KEY!.trim());
+    const { data, error } = await resend.emails.send({
       from: getMailFrom(),
       to: [params.to],
       subject: params.subject,
