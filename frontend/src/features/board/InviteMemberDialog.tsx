@@ -25,6 +25,7 @@ import {
 } from "@/shared/ui/select"
 import { Loader2, UserPlus, Mail } from "lucide-react"
 import { toast } from "sonner"
+import { getApiErrorMessage } from "@/shared/utils/apiErrorMessage"
 
 interface InviteMemberDialogProps {
     boardId: string
@@ -42,6 +43,7 @@ export function InviteMemberDialog({ boardId, onSuccess, children }: InviteMembe
         handleSubmit,
         reset,
         setValue,
+        getValues,
         watch,
         formState: { errors, isSubmitting }
     } = useForm({
@@ -54,13 +56,11 @@ export function InviteMemberDialog({ boardId, onSuccess, children }: InviteMembe
     const roleId = watch("roleId")
 
     useEffect(() => {
-        if (open) {
-            fetchRoles()
-        }
-    }, [open])
+        if (!open) return
+        let cancelled = false
 
-    const fetchRoles = async () => {
-        try {
+        const run = async () => {
+            try {
             setLoadingRoles(true)
             const response: any = await roleApi.getByGroup('board')
             // console.log("🛠️ Role API Response Raw:", response);
@@ -85,10 +85,11 @@ export function InviteMemberDialog({ boardId, onSuccess, children }: InviteMembe
             }
 
             const inviteableRoles = allRoles.filter((r: Role) => r.name !== 'board_owner')
+            if (cancelled) return
             setRoles(inviteableRoles)
 
             // Set default role to 'board_member' if exists and nothing selected yet
-            if (!roleId) {
+            if (!getValues("roleId")) {
                 const memberRole = inviteableRoles.find((r: Role) => r.name === 'board_member')
                 if (memberRole) {
                     setValue('roleId', memberRole.id)
@@ -96,28 +97,50 @@ export function InviteMemberDialog({ boardId, onSuccess, children }: InviteMembe
                     setValue('roleId', inviteableRoles[0].id)
                 }
             }
-        } catch (error) {
+            } catch (error) {
+            if (cancelled) return
             console.error("Failed to fetch roles", error)
             toast.error("Không thể tải danh sách quyền")
-        } finally {
-            setLoadingRoles(false)
+            } finally {
+            if (!cancelled) setLoadingRoles(false)
+            }
         }
-    }
+
+        void run()
+        return () => {
+            cancelled = true
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- chỉ tải roles khi mở dialog; getValues/setValue ổn định từ RHF
+    }, [open])
 
     const onSubmit = async (data: any) => {
+        const loadingId = toast.loading("Đang gửi lời mời và email…")
         try {
-            await boardApi.inviteMember(boardId, data.email, data.roleId)
-            toast.success("Đã gửi lời mời thành công!")
+            const res = (await boardApi.inviteMember(
+                boardId,
+                data.email,
+                data.roleId
+            )) as { success?: boolean; message?: string } | void
+
+            if (res && typeof res === "object" && res.success === false) {
+                toast.error(res.message || "Không gửi được lời mời", { id: loadingId })
+                return
+            }
+
+            toast.success(
+                "Đã gửi lời mời. Người nhận kiểm tra hộp thư và thư mục spam / Quảng cáo.",
+                { id: loadingId, duration: 6000 }
+            )
             setOpen(false)
             reset()
             onSuccess?.()
-        } catch (error: any) {
-            const message = error.response?.data?.message || "Lỗi gửi lời mời";
-            if (message === 'User not found') {
-                toast.error("Email này chưa đăng ký tài khoản trong hệ thống!");
-            } else {
-                toast.error(message);
-            }
+        } catch (error: unknown) {
+            const raw = getApiErrorMessage(error, "Lỗi gửi lời mời")
+            const message =
+                raw === "User not found"
+                    ? "Email này chưa có tài khoản TaskFlow — chỉ mời được người đã đăng ký."
+                    : raw
+            toast.error(message, { id: loadingId, duration: 8000 })
         }
     }
 
@@ -144,8 +167,13 @@ export function InviteMemberDialog({ boardId, onSuccess, children }: InviteMembe
                 <form onSubmit={handleSubmit(onSubmit)}>
                     <DialogHeader>
                         <DialogTitle>Mời thành viên vào bảng</DialogTitle>
-                        <DialogDescription>
-                            Gửi email mời người khác tham gia vào bảng làm việc này.
+                        <DialogDescription className="text-left space-y-1">
+                            <span>
+                                Chỉ mời được người đã có tài khoản TaskFlow. Họ sẽ nhận email chấp nhận/từ chối.
+                            </span>
+                            <span className="block text-amber-700 dark:text-amber-500 text-xs">
+                                Địa chỉ phải là email thật (domain tồn tại). Email kiểu @domain-không-tồn-tại sẽ bị từ chối bởi máy chủ thư — hệ thống sẽ không thêm thành viên nếu gửi mail thất bại.
+                            </span>
                         </DialogDescription>
                     </DialogHeader>
                     <div className="grid gap-4 py-4">

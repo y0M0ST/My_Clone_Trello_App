@@ -11,6 +11,8 @@ export const GoogleCallbackPage = () => {
     const navigate = useNavigate();
 
     useEffect(() => {
+        let cancelled = false;
+
         const handleCallback = async () => {
             const accessToken = searchParams.get("accessToken");
             const refreshToken = searchParams.get("refreshToken");
@@ -21,6 +23,8 @@ export const GoogleCallbackPage = () => {
                     tokenStorage.setRefreshToken(refreshToken);
 
                     const response = await authService.getMe();
+                    if (cancelled) return;
+
                     if (response.responseObject) {
                         tokenStorage.setUser(response.responseObject);
                     }
@@ -28,17 +32,22 @@ export const GoogleCallbackPage = () => {
                     toast.success("Login successful!");
                     navigate(ROUTES.DASHBOARD);
                 } catch (error) {
+                    if (cancelled) return;
                     console.error("Error fetching user details:", error);
                     toast.error("Failed to retrieve user details.");
                     navigate(ROUTES.LOGIN);
                 }
             } else {
+                if (cancelled) return;
                 toast.error("Login failed. No tokens received.");
                 navigate(ROUTES.LOGIN);
             }
         };
 
-        handleCallback();
+        void handleCallback();
+        return () => {
+            cancelled = true;
+        };
     }, [searchParams, navigate]);
 
     return <PageLoader />;

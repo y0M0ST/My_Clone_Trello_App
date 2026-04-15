@@ -103,7 +103,6 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSubmit, isLoading, error 
                                     <PasswordInput
                                         {...field}
                                         id="password"
-                                        type="password"
                                         placeholder="••••••••"
                                         disabled={isLoading}
                                         autoComplete="new-password"
@@ -123,7 +122,6 @@ const RegisterForm: React.FC<RegisterFormProps> = ({ onSubmit, isLoading, error 
                                     <PasswordInput
                                         {...field}
                                         id="confirmPassword"
-                                        type="password"
                                         placeholder="••••••••"
                                         disabled={isLoading}
                                         className="p-3 rounded-md border-2 border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-white placeholder-gray-400 bg-white/5"

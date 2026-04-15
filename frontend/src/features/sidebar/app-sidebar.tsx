@@ -19,9 +19,8 @@ import type { Workspace, User } from "@/shared/types"
 import { useEffect, useState } from "react"
 
 import { tokenStorage } from "@/shared/utils/tokenStorage"
-
-
-
+import { Link } from "react-router-dom"
+import { ROUTES } from "@/shared/config"
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([])
@@ -67,12 +66,18 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
         {/* <TeamSwitcher teams={workspaces} /> */}
-        <div className="flex items-center gap-2 px-4 py-2 text-sidebar-foreground">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-white font-bold overflow-hidden transition-transform duration-300 hover:rotate-12 hover:scale-110">
+        <Link
+          to={ROUTES.DASHBOARD}
+          title="Về Dashboard"
+          className="group flex min-w-0 items-center gap-2 rounded-md px-4 py-2 text-sidebar-foreground outline-none ring-sidebar-ring transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-2"
+        >
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white font-bold overflow-hidden transition-transform duration-300 group-hover:rotate-12 group-hover:scale-110">
             <img src="/taskflow.png" alt="TaskFlow" className="w-full h-full object-contain p-1" />
           </div>
-          <div className="font-semibold text-lg">TaskFlow</div>
-        </div>
+          <div className="truncate font-semibold text-lg group-data-[collapsible=icon]:hidden">
+            TaskFlow
+          </div>
+        </Link>
       </SidebarHeader>
       <SidebarContent>
         <NavWorkspaces workspaces={workspaces} onDelete={fetchWorkspaces} />

@@ -272,6 +272,20 @@ route.post('/templates/:templateId/use', authenticateJWT, async (req, res) => {
 
 /**
  * @swagger
+ * /boards/my-archived:
+ *   get:
+ *     tags:
+ *       - Boards
+ *     summary: Archived items for current user
+ *     description: Closed boards, archived lists, archived cards (workspaces not archived).
+ */
+route.get('/my-archived', async (req, res) => {
+  const serviceResponse = await BoardController.getMyArchivedOverview(req);
+  return handleServiceResponse(serviceResponse, res);
+});
+
+/**
+ * @swagger
  * /boards/{id}:
  *   get:
  *     tags:

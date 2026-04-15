@@ -36,7 +36,7 @@ export async function checkCommentPermissionForUser(
   if (policy === 'disabled') {
     // ALLOW ADMINS!
     const boardMember = await boardMemberRepo.findOne({
-      where: { boardId, userId },
+      where: { boardId, userId, status: 'active' },
       relations: ['role'],
     });
 
@@ -59,7 +59,7 @@ export async function checkCommentPermissionForUser(
 
   // 3. Kiểm tra user có phải member của board không
   const boardMember = await boardMemberRepo.findOne({
-    where: { boardId, userId },
+    where: { boardId, userId, status: 'active' },
   });
   const isBoardMember = !!boardMember;
 

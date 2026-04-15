@@ -13,6 +13,7 @@ import crypto from 'crypto';
 import { AddBoardMemberInput } from './board.schema';
 import { Card } from '@/common/entities/card.entity';
 import { Label } from '@/common/entities/label.entity';
+import { List } from '@/common/entities/list.entity';
 
 export class BoardService {
   private boardRepository = AppDataSource.getRepository(Board);
@@ -23,6 +24,7 @@ export class BoardService {
   private emailService = new EmailService();
   private cardRepository = AppDataSource.getRepository(Card);
   private labelRepository = AppDataSource.getRepository(Label);
+  private listRepository = AppDataSource.getRepository(List);
 
   async createBoard(data: CreateBoardDto, creatorId?: string) {
     const workspace = await this.workspaceRepository.findOne({
@@ -149,6 +151,7 @@ export class BoardService {
         boardMembers: {
           id: true,
           roleId: true,
+          status: true,
           user: {
             id: true,
             email: true,
@@ -211,6 +214,7 @@ export class BoardService {
         avatarUrl: bm.user.avatarUrl,
         roleId: bm.roleId,
         roleName: bm.role.name,
+        memberStatus: bm.status,
       })),
       lists: board.lists.map((list) => ({
         ...list,
@@ -295,9 +299,6 @@ export class BoardService {
 
     await this.boardMemberRepository.save(newMember);
 
-    // Don't clear cache yet as they are not active? Or maybe yes to ensure they don't have access?
-    await rbacProvider.clearCache(user.id, boardId);
-
     const savedMember = await this.boardMemberRepository.findOne({
       where: { id: newMember.id },
       relations: ['user', 'role', 'board'],
@@ -306,19 +307,32 @@ export class BoardService {
       delete savedMember.user.password;
     }
 
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-    const acceptLink = `${frontendUrl} /invite/accept ? boardId = ${board.id} `;
-    const declineLink = `${frontendUrl} /invite/decline ? boardId = ${board.id} `;
+    const base = (process.env.FRONTEND_URL || 'http://localhost:5173').replace(
+      /\/$/,
+      ''
+    );
+    const acceptLink = `${base}/invite/accept?boardId=${board.id}`;
+    const declineLink = `${base}/invite/decline?boardId=${board.id}`;
 
-    await this.emailService.sendBoardInvitationEmail({
-      to: user.email,
-      boardTitle: board.title,
-      inviterName: currentMember.user.name,
-      roleName: role.name,
-      link: acceptLink,
-      declineLink: declineLink,
-      // We will update email service to handle accept/decline links separately or just use 'link' as the main action
-    });
+    try {
+      await this.emailService.sendBoardInvitationEmail({
+        to: user.email,
+        boardTitle: board.title,
+        inviterName: currentMember.user.name,
+        roleName: role.name,
+        link: acceptLink,
+        declineLink,
+      });
+    } catch (err) {
+      await this.boardMemberRepository.remove(newMember);
+      await rbacProvider.clearCache(user.id, boardId);
+      console.error('[invite] sendBoardInvitationEmail failed:', err);
+      throw new Error(
+        'Không gửi được email mời (SMTP hoặc địa chỉ không hợp lệ). Thành viên tạm chưa được thêm.'
+      );
+    }
+
+    await rbacProvider.clearCache(user.id, boardId);
 
     return {
       message: 'Member added to board successfully',
@@ -617,6 +631,79 @@ export class BoardService {
 
     const saved = await this.boardRepository.save(board);
     return { board: saved, changedFields };
+  }
+
+  /**
+   * Tổng hợp mục lưu trữ của user: bảng đã đóng, danh sách đã archive, thẻ đã archive
+   * (workspace chưa archive; thành viên board active).
+   */
+  async getMyArchivedOverview(userId: string) {
+    const closedBoardEntities = await this.boardRepository
+      .createQueryBuilder('board')
+      .innerJoin('board.boardMembers', 'bm')
+      .innerJoinAndSelect('board.workspace', 'ws')
+      .where('bm.userId = :userId', { userId })
+      .andWhere('bm.status = :st', { st: 'active' })
+      .andWhere('board.isClosed = :closed', { closed: true })
+      .andWhere('ws.isArchived = :wsa', { wsa: false })
+      .orderBy('board.updatedAt', 'DESC')
+      .getMany();
+
+    const closedBoards = closedBoardEntities.map((b) => ({
+      id: b.id,
+      title: b.title,
+      workspaceId: b.workspace?.id ?? '',
+      workspaceTitle: b.workspace?.title ?? '',
+    }));
+
+    const archivedListEntities = await this.listRepository
+      .createQueryBuilder('list')
+      .innerJoinAndSelect('list.board', 'board')
+      .innerJoinAndSelect('board.workspace', 'ws')
+      .innerJoin('board.boardMembers', 'bm')
+      .where('bm.userId = :userId', { userId })
+      .andWhere('bm.status = :st', { st: 'active' })
+      .andWhere('list.isArchived = :la', { la: true })
+      .andWhere('ws.isArchived = :wsa', { wsa: false })
+      .orderBy('list.updatedAt', 'DESC')
+      .take(100)
+      .getMany();
+
+    const archivedLists = archivedListEntities.map((list) => ({
+      id: list.id,
+      title: list.title,
+      boardId: list.boardId,
+      boardTitle: list.board?.title ?? '',
+      boardIsClosed: list.board?.isClosed ?? false,
+      workspaceTitle: list.board?.workspace?.title ?? '',
+    }));
+
+    const archivedCardEntities = await this.cardRepository
+      .createQueryBuilder('card')
+      .innerJoinAndSelect('card.list', 'list')
+      .innerJoinAndSelect('list.board', 'board')
+      .innerJoinAndSelect('board.workspace', 'ws')
+      .innerJoin('board.boardMembers', 'bm')
+      .where('bm.userId = :userId', { userId })
+      .andWhere('bm.status = :st', { st: 'active' })
+      .andWhere('card.isArchived = :ca', { ca: true })
+      .andWhere('ws.isArchived = :wsa', { wsa: false })
+      .orderBy('card.updatedAt', 'DESC')
+      .take(100)
+      .getMany();
+
+    const archivedCards = archivedCardEntities.map((card) => ({
+      id: card.id,
+      title: card.title,
+      boardId: card.boardId,
+      listId: card.listId,
+      listTitle: card.list?.title ?? '',
+      boardTitle: card.list?.board?.title ?? '',
+      boardIsClosed: card.list?.board?.isClosed ?? false,
+      workspaceTitle: card.list?.board?.workspace?.title ?? '',
+    }));
+
+    return { closedBoards, archivedLists, archivedCards };
   }
 
   async closeBoard(id: string) {

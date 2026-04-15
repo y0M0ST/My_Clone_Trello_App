@@ -1,5 +1,5 @@
-import { Input } from "@/shared/ui/input";
 import { Button } from "@/shared/ui/button";
+import { PasswordInput } from "@/shared/ui/password-input";
 import { useForm, Controller } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -52,7 +52,12 @@ export const ChangePasswordForm = ({ onSubmit, isLoading, error, success }: Prop
                     name="currentPassword"
                     control={control}
                     render={({ field }) => (
-                        <Input {...field} id="currentPassword" type="password" disabled={isLoading} />
+                        <PasswordInput
+                            {...field}
+                            id="currentPassword"
+                            disabled={isLoading}
+                            autoComplete="current-password"
+                        />
                     )}
                 />
                 {errors.currentPassword && <span className="text-xs text-red-500">{errors.currentPassword.message}</span>}
@@ -64,7 +69,12 @@ export const ChangePasswordForm = ({ onSubmit, isLoading, error, success }: Prop
                     name="newPassword"
                     control={control}
                     render={({ field }) => (
-                        <Input {...field} id="newPassword" type="password" disabled={isLoading} />
+                        <PasswordInput
+                            {...field}
+                            id="newPassword"
+                            disabled={isLoading}
+                            autoComplete="new-password"
+                        />
                     )}
                 />
                 {errors.newPassword && <span className="text-xs text-red-500">{errors.newPassword.message}</span>}
@@ -76,7 +86,12 @@ export const ChangePasswordForm = ({ onSubmit, isLoading, error, success }: Prop
                     name="confirmPassword"
                     control={control}
                     render={({ field }) => (
-                        <Input {...field} id="confirmPassword" type="password" disabled={isLoading} />
+                        <PasswordInput
+                            {...field}
+                            id="confirmPassword"
+                            disabled={isLoading}
+                            autoComplete="new-password"
+                        />
                     )}
                 />
                 {errors.confirmPassword && <span className="text-xs text-red-500">{errors.confirmPassword.message}</span>}

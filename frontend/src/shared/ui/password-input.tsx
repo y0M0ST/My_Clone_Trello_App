@@ -22,8 +22,9 @@ const PasswordInput = React.forwardRef<HTMLInputElement, PasswordInputProps>(
                     type="button"
                     onClick={() => setShowPassword((prev) => !prev)}
                     disabled={props.disabled}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white cursor-pointer transition-colors disabled:opacity-50"
-                    tabIndex={-1} 
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-sm p-1 text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
+                    tabIndex={-1}
+                    aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
                 >
                     {showPassword ? (
                         <EyeOff className="h-4 w-4" aria-hidden="true" />

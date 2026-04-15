@@ -12,15 +12,14 @@ import {
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs";
 import { Button } from "@/shared/ui/button";
-import { Input } from "@/shared/ui/input";
 import { Switch } from "@/shared/ui/switch";
 import { Label } from "@/shared/ui/label";
 import { useTheme } from "@/shared/providers/ThemeProvider";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card";
-import { authService } from "@/shared/api/services/authService";
 import { tokenStorage } from "@/shared/utils/tokenStorage";
-import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
+import { ChangePasswordForm } from "@/features/auth/ui/ChangePasswordForm";
+import { useChangePassword } from "@/hooks/useChangePassword";
 
 export default function SettingsPage() {
     const { theme, setTheme } = useTheme();
@@ -31,66 +30,12 @@ export default function SettingsPage() {
     const [emailNotifications, setEmailNotifications] = useState(true);
     const [browserNotifications, setBrowserNotifications] = useState(false);
 
-    // Password change states
-    const [isResetMode, setIsResetMode] = useState(false);
-    const [resetCode, setResetCode] = useState("");
-    const [newPassword, setNewPassword] = useState("");
-    const [confirmPassword, setConfirmPassword] = useState("");
-
-    const handleResetPassword = async () => {
-        if (!user || !user.email) {
-            toast.error("Không tìm thấy thông tin email. Vui lòng đăng nhập lại.");
-            return;
-        }
-
-        try {
-            await authService.forgotPassword(user.email);
-            toast.success("Đã gửi email! Vui lòng kiểm tra và nhập mã xác nhận.");
-            setIsResetMode(true);
-            // Clear fields when opening form
-            setResetCode("");
-            setNewPassword("");
-            setConfirmPassword("");
-        } catch (error: any) {
-            const errorMessage = error.response?.data?.message || "Lỗi gửi yêu cầu. Vui lòng thử lại sau.";
-            toast.error(errorMessage);
-        }
-    };
-
-    const handleSubmitReset = async () => {
-        if (newPassword !== confirmPassword) {
-            toast.error("Mật khẩu xác nhận không khớp!");
-            return;
-        }
-
-        if (!user || !user.email) {
-            toast.error("Không tìm thấy thông tin email. Vui lòng thử lại.");
-            return;
-        }
-
-        try {
-            await authService.resetPassword(user.email, resetCode, newPassword);
-            alert("Đổi mật khẩu thành công! Vui lòng đăng nhập lại.");
-
-            // Optional: Logout user to force re-login with new password
-            tokenStorage.clearTokens();
-            setTimeout(() => window.location.reload(), 1500);
-
-        } catch (error: any) {
-            const serverMessage = error.response?.data?.message || "";
-            let displayMessage = "Đổi mật khẩu thất bại. Mã xác nhận có thể không đúng hoặc đã hết hạn.";
-
-            if (serverMessage === "New password must be different from the old password") {
-                displayMessage = "Mật khẩu mới không được trùng với mật khẩu cũ.";
-            } else if (serverMessage === "Invalid code" || serverMessage === "Code expired or invalid") {
-                displayMessage = "Mã xác nhận không đúng hoặc đã hết hạn.";
-            } else if (serverMessage === "User not found") {
-                displayMessage = "Không tìm thấy thông tin người dùng.";
-            }
-
-            alert(displayMessage);
-        }
-    };
+    const {
+        changePassword,
+        isLoading: isChangingPassword,
+        error: changePasswordError,
+        success: changePasswordSuccess,
+    } = useChangePassword();
 
     return (
         <div className="container mx-auto py-10 px-4 max-w-5xl">
@@ -231,59 +176,28 @@ export default function SettingsPage() {
                         <Card>
                             <CardHeader>
                                 <CardTitle>Đổi mật khẩu</CardTitle>
-                                <CardDescription>Bạn sẽ nhận được email hướng dẫn đặt lại mật khẩu.</CardDescription>
+                                <CardDescription>
+                                    Khi đã đăng nhập, bạn phải nhập <strong>mật khẩu hiện tại</strong> để xác nhận là chính chủ (tránh người khác dùng phiên của bạn đổi mật khẩu).
+                                </CardDescription>
                             </CardHeader>
-                            <CardContent>
-                                <div className="space-y-4">
-                                    <div className="text-sm text-gray-600 dark:text-gray-400">
-                                        Email hiện tại: <span className="font-semibold text-gray-900 dark:text-white">{user?.email}</span>
-                                    </div>
-                                    {!isResetMode ? (
-                                        <Button onClick={handleResetPassword}>
-                                            Gửi yêu cầu đặt lại mật khẩu
-                                        </Button>
-                                    ) : (
-                                        <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
-                                            <div className="space-y-2">
-                                                <Label>Mã xác nhận (kiểm tra email)</Label>
-                                                <Input
-                                                    value={resetCode}
-                                                    onChange={(e) => setResetCode(e.target.value)}
-                                                    placeholder="Nhập mã từ email..."
-                                                    autoComplete="off"
-                                                />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <Label>Mật khẩu mới</Label>
-                                                <Input
-                                                    type="password"
-                                                    value={newPassword}
-                                                    onChange={(e) => setNewPassword(e.target.value)}
-                                                    placeholder="Nhập mật khẩu mới..."
-                                                    autoComplete="new-password"
-                                                />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <Label>Xác nhận mật khẩu mới</Label>
-                                                <Input
-                                                    type="password"
-                                                    value={confirmPassword}
-                                                    onChange={(e) => setConfirmPassword(e.target.value)}
-                                                    placeholder="Nhập lại mật khẩu mới..."
-                                                    autoComplete="new-password"
-                                                />
-                                            </div>
-                                            <div className="flex gap-2">
-                                                <Button onClick={handleSubmitReset} disabled={!resetCode || !newPassword || !confirmPassword}>
-                                                    Đổi mật khẩu
-                                                </Button>
-                                                <Button variant="ghost" onClick={() => setIsResetMode(false)}>
-                                                    Hủy
-                                                </Button>
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
+                            <CardContent className="space-y-4">
+                                <p className="text-sm text-muted-foreground">
+                                    Tài khoản:{" "}
+                                    <span className="font-medium text-foreground">{user?.email}</span>
+                                </p>
+                                <ChangePasswordForm
+                                    onSubmit={changePassword}
+                                    isLoading={isChangingPassword}
+                                    error={changePasswordError}
+                                    success={changePasswordSuccess}
+                                />
+                                <p className="text-sm text-muted-foreground border-t pt-4">
+                                    Nếu <strong>quên mật khẩu</strong> và không đăng nhập được, hãy đăng xuất (nếu còn) rồi dùng{" "}
+                                    <Link to="/forgot-password" className="text-primary underline underline-offset-2">
+                                        Quên mật khẩu tại trang đăng nhập
+                                    </Link>
+                                    — luồng đó chỉ cần email và mã xác nhận, <strong>không</strong> yêu cầu mật khẩu cũ.
+                                </p>
                             </CardContent>
                         </Card>
                     </TabsContent>

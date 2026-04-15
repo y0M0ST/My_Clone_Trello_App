@@ -149,22 +149,27 @@ const BoardPage = () => {
         useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
     );
 
-    const fetchBoardData = useCallback(async () => {
+    const fetchBoardData = useCallback(async (signal?: AbortSignal) => {
         if (!boardId) return;
+        const gone = () => signal?.aborted;
         try {
             const invite = new URLSearchParams(window.location.search).get("invite");
             if (invite) {
                 try {
                     await boardApi.joinBoardByInvite(boardId, invite);
+                    if (gone()) return;
                     toast.success("Đã tham gia bảng qua link mời");
                 } catch (joinErr: unknown) {
+                    if (gone()) return;
                     const ax = joinErr as { response?: { data?: { message?: string } } };
                     toast.error(ax.response?.data?.message || "Link mời không hợp lệ hoặc đã hết hạn");
                 }
+                if (gone()) return;
                 navigate(`/boards/${boardId}`, { replace: true });
             }
 
             const response: unknown = await boardApi.getDetail(boardId);
+            if (gone()) return;
             const res = response as { responseObject?: BoardDetail; data?: BoardDetail };
             const boardData = res.responseObject || res.data || (response as BoardDetail);
 
@@ -183,16 +188,19 @@ const BoardPage = () => {
             // console.log("🔥 Board Data:", boardData);
             setBoard(boardData);
         } catch (error) {
+            if (gone()) return;
             console.error("Lỗi tải board:", error);
             toast.error("Không thể tải thông tin bảng");
             navigate("/dashboard");
         } finally {
-            setLoading(false);
+            if (!gone()) setLoading(false);
         }
     }, [boardId, navigate]);
 
     useEffect(() => {
-        fetchBoardData();
+        const ac = new AbortController();
+        void fetchBoardData(ac.signal);
+        return () => ac.abort();
     }, [fetchBoardData]);
 
     // Sync selectedCard when board data updates

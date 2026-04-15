@@ -24,6 +24,10 @@ export class EmailService {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
       },
+      /** Tránh treo request API khi SMTP/mạng không phản hồi */
+      connectionTimeout: 12_000,
+      greetingTimeout: 12_000,
+      socketTimeout: 25_000,
     });
   }
 

@@ -383,6 +383,7 @@ export class RBACProvider {
       .leftJoin('bm.role', 'role')
       .where('bm.userId = :userId', { userId })
       .andWhere('bm.boardId = :boardId', { boardId })
+      .andWhere('bm.status = :active', { active: 'active' })
       .select(['bm.id', 'bm.userId', 'bm.boardId', 'role.name'])
       .getOne();
 
@@ -507,57 +508,26 @@ export class RBACProvider {
       ]);
     }
 
+    const adminRoles: Role[] = [
+      ROLES.WORKSPACE_ADMIN,
+      ROLES.WORKSPACE_MODERATOR,
+    ];
+    const isWorkspaceAdmin =
+      !!workspaceMembership &&
+      adminRoles.includes(workspaceMembership.role);
+
     if (board.isClosed) {
       if (!userId) {
         return { allowed: false, reason: 'Board is closed' };
       }
-
-      const adminRoles: Role[] = [
-        ROLES.WORKSPACE_ADMIN,
-        ROLES.WORKSPACE_MODERATOR,
-      ];
-      const isWorkspaceAdmin =
-        workspaceMembership && adminRoles.includes(workspaceMembership.role);
 
       if (!boardMembership && !isWorkspaceAdmin) {
         return { allowed: false, reason: 'Board is closed' };
       }
     }
 
-    const visibility = board.visibility;
-
-    if (visibility === 'public') {
-      return {
-        allowed: true,
-        userContext: userId
-          ? {
-              userId,
-              workspaceRole: workspaceMembership?.role,
-              boardRole: boardMembership?.role,
-              isWorkspaceMember: !!workspaceMembership,
-              isBoardMember: !!boardMembership,
-            }
-          : undefined,
-      };
-    }
-
     if (!userId) {
       return { allowed: false, reason: 'Authentication required' };
-    }
-
-    if (visibility === 'workspace') {
-      if (workspaceMembership) {
-        return {
-          allowed: true,
-          userContext: {
-            userId,
-            workspaceRole: workspaceMembership.role,
-            boardRole: boardMembership?.role,
-            isWorkspaceMember: true,
-            isBoardMember: !!boardMembership,
-          },
-        };
-      }
     }
 
     if (boardMembership) {
@@ -573,22 +543,16 @@ export class RBACProvider {
       };
     }
 
-    if (workspaceMembership) {
-      const adminRoles: Role[] = [
-        ROLES.WORKSPACE_ADMIN,
-        ROLES.WORKSPACE_MODERATOR,
-      ];
-      if (adminRoles.includes(workspaceMembership.role)) {
-        return {
-          allowed: true,
-          userContext: {
-            userId,
-            workspaceRole: workspaceMembership.role,
-            isWorkspaceMember: true,
-            isBoardMember: false,
-          },
-        };
-      }
+    if (isWorkspaceAdmin && workspaceMembership) {
+      return {
+        allowed: true,
+        userContext: {
+          userId,
+          workspaceRole: workspaceMembership.role,
+          isWorkspaceMember: true,
+          isBoardMember: false,
+        },
+      };
     }
 
     return { allowed: false, reason: 'Not authorized to view this board' };

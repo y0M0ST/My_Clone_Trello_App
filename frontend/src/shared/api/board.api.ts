@@ -34,6 +34,8 @@ export interface Member {
     avatarUrl: string | null;
     roleId: string;
     roleName?: string;
+    /** pending = đã mời, chưa chấp nhận (BE) */
+    memberStatus?: "pending" | "active" | "declined";
     role?: {
         id: string;
         name: string;
@@ -123,5 +125,39 @@ export const boardApi = {
 
     getArchivedCards: (boardId: string) => {
         return apiFactory.get<Card[]>(`/boards/${boardId}/cards?archived=true`);
-    }
+    },
+
+    /** Tổng hợp bảng đã đóng + list/card đã archive (GET /boards/my-archived) */
+    getMyArchivedOverview: () => {
+        return apiFactory.get<{
+            closedBoards: {
+                id: string;
+                title: string;
+                workspaceId: string;
+                workspaceTitle: string;
+            }[];
+            archivedLists: {
+                id: string;
+                title: string;
+                boardId: string;
+                boardTitle: string;
+                boardIsClosed: boolean;
+                workspaceTitle: string;
+            }[];
+            archivedCards: {
+                id: string;
+                title: string;
+                boardId: string;
+                listId: string;
+                listTitle: string;
+                boardTitle: string;
+                boardIsClosed: boolean;
+                workspaceTitle: string;
+            }[];
+        }>("/boards/my-archived");
+    },
+
+    reopenBoard: (boardId: string) => {
+        return apiFactory.patch(`/boards/${boardId}/reopen`);
+    },
 };

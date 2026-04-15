@@ -117,9 +117,8 @@ export const LoginForm = ({ onSuccess }: OAuthFormProps) => {
                     <PasswordInput
                       {...field}
                       id="password"
-                      type="password"
                       disabled={isLoading}
-                      autoComplete="new-password"
+                      autoComplete="current-password"
                       // Giảm padding p-3 -> p-2.5
                       className="p-2.5 rounded-md border-2 border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-white placeholder-gray-400 bg-white/5 text-sm"
                     />

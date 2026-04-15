@@ -28,5 +28,14 @@ export const workspaceApi = {
     },
     delete: (id: string) => {
         return apiFactory.delete(`${API_ENDPOINTS.WORKSPACES.BASE}/${id}`);
-    }
+    },
+
+    /** Workspace đã lưu trữ của user */
+    getArchived: () => {
+        return apiFactory.get(`${API_ENDPOINTS.WORKSPACES.BASE}/archived`);
+    },
+
+    reopenWorkspace: (id: string) => {
+        return apiFactory.patch(`${API_ENDPOINTS.WORKSPACES.BASE}/${id}/reopen`);
+    },
 };

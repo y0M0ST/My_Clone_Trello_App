@@ -153,6 +153,9 @@ export function ManageMembersDialog({
                                             if (r.includes('member')) return <span className="text-[10px] bg-gray-100 text-gray-800 px-1 py-0.5 rounded font-normal">Member</span>;
                                             return <span className="text-[10px] bg-gray-100 text-gray-800 px-1 py-0.5 rounded font-normal capitalize">{member.roleName || "Member"}</span>;
                                         })()}
+                                        {member.memberStatus === "pending" && (
+                                            <span className="text-[10px] bg-amber-100 text-amber-900 px-1 py-0.5 rounded font-normal">Chờ chấp nhận</span>
+                                        )}
                                     </p>
                                     <p className="text-xs text-muted-foreground mt-1">{member.email}</p>
                                 </div>

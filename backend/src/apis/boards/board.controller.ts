@@ -76,6 +76,36 @@ export class BoardController {
     }
   }
 
+  static async getMyArchivedOverview(
+    req: Request
+  ): Promise<ServiceResponse<any>> {
+    try {
+      const userId = req.user?.userId;
+      if (!userId) {
+        return new ServiceResponse(
+          ResponseStatus.Failed,
+          'Unauthorized',
+          null,
+          StatusCodes.UNAUTHORIZED
+        );
+      }
+      const data = await boardService.getMyArchivedOverview(userId);
+      return new ServiceResponse(
+        ResponseStatus.Success,
+        'Archived overview retrieved',
+        data,
+        StatusCodes.OK
+      );
+    } catch (error: any) {
+      return new ServiceResponse(
+        ResponseStatus.Failed,
+        error.message,
+        null,
+        StatusCodes.BAD_REQUEST
+      );
+    }
+  }
+
   static async findOne(req: Request): Promise<ServiceResponse<any>> {
     try {
       const board = await boardService.getBoardById(req.params.id as string);
