@@ -114,7 +114,7 @@ apiClient.interceptors.response.use(
         // console.log("🔁 Attempting to refresh token...");
 
         const response = await axios.post(
-          `${apiConfig.baseURL}auth/refresh-token`,
+          `${apiConfig.baseURL}auth/refreshToken`,
           { refreshToken },
           { headers: { "Content-Type": "application/json" } }
         )

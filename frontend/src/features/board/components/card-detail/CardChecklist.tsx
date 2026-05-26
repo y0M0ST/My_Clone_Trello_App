@@ -24,9 +24,10 @@ interface Checklist {
 interface Props {
     cardId: string;
     canEdit?: boolean;
+    boardSyncEpoch?: number;
 }
 
-export const CardChecklist = ({ cardId, canEdit = true }: Props) => {
+export const CardChecklist = ({ cardId, canEdit = true, boardSyncEpoch = 0 }: Props) => {
     const [checklists, setChecklists] = useState<Checklist[]>([]);
     const [isCreating, setIsCreating] = useState(false);
     const [newChecklistName, setNewChecklistName] = useState("Việc cần làm");
@@ -48,8 +49,8 @@ export const CardChecklist = ({ cardId, canEdit = true }: Props) => {
     };
 
     useEffect(() => {
-        fetchChecklists();
-    }, [cardId]);
+        void fetchChecklists();
+    }, [cardId, boardSyncEpoch]);
 
     const handleCreateChecklist = async () => {
         if (!newChecklistName.trim()) return;

@@ -1,63 +1,29 @@
-import { Resend } from 'resend';
+import nodemailer from 'nodemailer';
 
-/**
- * Cấu hình Resend (https://resend.com):
- * - RESEND_API_KEY: API key dạng re_...
- * - MAIL_FROM: địa chỉ gửi, phải là domain đã verify hoặc onboarding@resend.dev khi test
- */
-export function assertResendMailConfigured(): void {
-  const key = process.env.RESEND_API_KEY?.trim();
-  const from = process.env.MAIL_FROM?.trim();
-  if (!key) {
+/** Gọi trước khi gửi mail — production hay quên env nên lỗi khó đoán */
+export function assertSmtpConfigured(): void {
+  const user = process.env.SMTP_USER?.trim();
+  const pass = process.env.SMTP_PASS?.trim();
+  if (!user || !pass) {
     throw new Error(
-      'Chưa cấu hình RESEND_API_KEY trên server (bắt buộc để gửi email).'
-    );
-  }
-  if (!from) {
-    throw new Error(
-      'Chưa cấu hình MAIL_FROM (ví dụ: TaskFlow <onboarding@resend.dev> hoặc TaskFlow <noreply@domain-da-verify.com>).'
+      'Chưa cấu hình SMTP_USER / SMTP_PASS trên server (bắt buộc để gửi email mời, OTP, v.v.).'
     );
   }
 }
 
-/** @deprecated Giữ tên cũ để import ít đổi; logic đã chuyển sang Resend. */
-export const assertSmtpConfigured = assertResendMailConfigured;
-
-function getMailFrom(): string {
-  const from = process.env.MAIL_FROM?.trim();
-  if (!from) {
-    throw new Error('MAIL_FROM chưa được cấu hình.');
-  }
-  return from;
+function smtpFromHeader(): string {
+  const user = process.env.SMTP_USER?.trim();
+  if (!user) throw new Error('SMTP_USER chưa được cấu hình.');
+  return `"TaskFlow" <${user}>`;
 }
 
-/** Rút gọn lỗi gửi mail (Resend / mạng) để trả về API (không lộ secret). */
+/** Rút gọn lỗi Nodemailer để trả về API (không lộ secret). */
 export function formatMailSendError(err: unknown): string {
   if (!err || typeof err !== 'object') return '';
-  const e = err as {
-    code?: string;
-    message?: string;
-    statusCode?: number;
-    name?: string;
-  };
+  const e = err as { code?: string; message?: string; responseCode?: number };
   const msg = String(e.message || '');
   const lower = msg.toLowerCase();
 
-  if (
-    lower.includes('api key') ||
-    lower.includes('unauthorized') ||
-    lower.includes('invalid api key') ||
-    e.statusCode === 401 ||
-    e.statusCode === 403
-  ) {
-    return 'Resend từ chối — kiểm tra RESEND_API_KEY và MAIL_FROM (domain phải verify trên Resend, trừ onboarding@resend.dev khi test).';
-  }
-  if (e.statusCode === 422 || lower.includes('validation') || lower.includes('invalid')) {
-    return 'Resend báo dữ liệu không hợp lệ (email người nhận hoặc định dạng MAIL_FROM).';
-  }
-  if (e.statusCode === 429 || lower.includes('rate limit')) {
-    return 'Vượt giới hạn gửi mail Resend — thử lại sau.';
-  }
   if (
     lower.includes('invalid login') ||
     lower.includes('535') ||
@@ -71,14 +37,12 @@ export function formatMailSendError(err: unknown): string {
   if (
     e.code === 'ETIMEDOUT' ||
     e.code === 'ECONNECTION' ||
-    e.code === 'ECONNREFUSED' ||
-    lower.includes('fetch failed') ||
-    lower.includes('network')
+    e.code === 'ECONNREFUSED'
   ) {
-    return 'Không gọi được API Resend (mạng/DNS/firewall). Kiểm tra outbound HTTPS tới api.resend.com.';
+    return 'Không kết nối được máy chủ SMTP (port 587 có thể bị hosting chặn outbound — thử provider khác hoặc mở firewall).';
   }
   if (lower.includes('greeting') || lower.includes('timeout')) {
-    return 'Gửi mail không phản hồi kịp (timeout).';
+    return 'SMTP không phản hồi kịp (timeout).';
   }
   const trimmed = msg.replace(/\s+/g, ' ').trim();
   return trimmed.length > 200 ? `${trimmed.slice(0, 200)}…` : trimmed;
@@ -94,36 +58,42 @@ interface BoardInvitationEmailOptions {
 }
 
 export class EmailService {
-  /**
-   * Không gọi `new Resend()` trong constructor: SDK ném nếu key rỗng,
-   * và trên Render biến môi trường có thể chưa cần thiết để process khởi động.
-   */
+  private transporter: nodemailer.Transporter;
+
+  constructor() {
+    this.transporter = nodemailer.createTransport({
+      service: 'gmail',
+      host: 'smtp.gmail.com',
+      port: 587,
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      },
+      connectionTimeout: 12_000,
+      greetingTimeout: 12_000,
+      socketTimeout: 25_000,
+    });
+  }
+
   /** Gửi HTML tùy ý (workspace invite, v.v.). */
   async sendHtmlMail(params: {
     to: string;
     subject: string;
     html: string;
   }): Promise<void> {
-    assertResendMailConfigured();
-    const resend = new Resend(process.env.RESEND_API_KEY!.trim());
-    const { data, error } = await resend.emails.send({
-      from: getMailFrom(),
-      to: [params.to],
+    assertSmtpConfigured();
+    await this.transporter.sendMail({
+      from: smtpFromHeader(),
+      to: params.to,
       subject: params.subject,
       html: params.html,
     });
-    if (error) {
-      const err = new Error(error.message);
-      Object.assign(err, { name: error.name, statusCode: (error as { statusCode?: number }).statusCode });
-      throw err;
-    }
-    if (!data) {
-      throw new Error('Resend không trả về dữ liệu sau khi gửi.');
-    }
   }
 
   async sendVerificationEmail(email: string, otp: string) {
-    await this.sendHtmlMail({
+    assertSmtpConfigured();
+    await this.transporter.sendMail({
+      from: smtpFromHeader(),
       to: email,
       subject: 'Xác thực tài khoản của bạn',
       html: `
@@ -139,7 +109,9 @@ export class EmailService {
   }
 
   async sendForgotPasswordEmail(email: string, code: string) {
-    await this.sendHtmlMail({
+    assertSmtpConfigured();
+    await this.transporter.sendMail({
+      from: smtpFromHeader(),
       to: email,
       subject: 'Reset your password',
       html: `
@@ -152,7 +124,9 @@ export class EmailService {
   }
 
   async sendBoardInvitationEmail(options: BoardInvitationEmailOptions) {
-    const { to, boardTitle, inviterName, roleName, link, declineLink } = options;
+    assertSmtpConfigured();
+    const { to, boardTitle, inviterName, roleName, link, declineLink } =
+      options;
     const acceptLink =
       link || `${process.env.FRONTEND_URL || 'http://localhost:5173'}/boards`;
 
@@ -173,7 +147,8 @@ export class EmailService {
 
     const friendlyRole = formatRoleName(roleName);
 
-    await this.sendHtmlMail({
+    await this.transporter.sendMail({
+      from: smtpFromHeader(),
       to,
       subject: `You were added to board "${boardTitle}"`,
       html: `

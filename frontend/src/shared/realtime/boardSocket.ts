@@ -18,8 +18,10 @@ export function subscribeBoardRealtime(
     path: "/socket.io",
     auth: { token },
     transports: ["websocket", "polling"],
-    reconnectionAttempts: 5,
-    reconnectionDelay: 1500,
+    reconnectionAttempts: 10,
+    reconnectionDelay: 1000,
+    reconnectionDelayMax: 5000,
+    withCredentials: true,
   });
 
   let debounce: ReturnType<typeof setTimeout> | null = null;

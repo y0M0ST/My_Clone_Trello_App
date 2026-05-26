@@ -4,11 +4,22 @@ import { verifyJwt } from '@/common/utils/jwtUtils';
 
 let io: Server | null = null;
 
-function parseAllowedOrigins(): string | string[] | boolean {
+/**
+ * Whitelist Origin cho Socket.IO khi bật SOCKET_STRICT_CORS=1.
+ * Mặc định dùng origin: true (echo Origin) để Vercel / preview URL khác FRONTEND_URL vẫn kết nối được.
+ */
+function strictSocketCorsOrigins(): string[] | null {
   const raw = process.env.FRONTEND_URL?.trim();
-  if (!raw) return true;
-  const base = raw.replace(/\/$/, '');
-  return [raw, base];
+  if (!raw) return null;
+  const parts = raw
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (parts.length === 0) return null;
+  return parts.flatMap((p) => {
+    const base = p.replace(/\/$/, '');
+    return p === base ? [p] : [p, base];
+  });
 }
 
 /**
@@ -17,10 +28,15 @@ function parseAllowedOrigins(): string | string[] | boolean {
 export function attachBoardSocket(httpServer: HttpServer): Server {
   if (io) return io;
 
+  const strict =
+    process.env.SOCKET_STRICT_CORS === '1' ||
+    process.env.SOCKET_STRICT_CORS === 'true';
+  const whitelist = strict ? strictSocketCorsOrigins() : null;
+
   io = new Server(httpServer, {
     path: '/socket.io',
     cors: {
-      origin: parseAllowedOrigins(),
+      origin: whitelist && whitelist.length > 0 ? whitelist : true,
       credentials: true,
     },
     transports: ['websocket', 'polling'],

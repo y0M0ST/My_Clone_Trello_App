@@ -121,6 +121,8 @@ const BoardPage = () => {
     const { boardId } = useParams();
     const navigate = useNavigate();
     const [board, setBoard] = useState<BoardDetail | null>(null);
+    /** Tăng mỗi lần GET board thành công — refetch activity/checklist trong card dialog khi có realtime */
+    const [boardSyncEpoch, setBoardSyncEpoch] = useState(0);
     const [loading, setLoading] = useState(true);
     const [isUpdatingVisibility, setIsUpdatingVisibility] = useState(false);
 
@@ -188,6 +190,7 @@ const BoardPage = () => {
 
             // console.log("🔥 Board Data:", boardData);
             setBoard(boardData);
+            if (!gone()) setBoardSyncEpoch((n) => n + 1);
         } catch (error) {
             if (gone()) return;
             console.error("Lỗi tải board:", error);
@@ -808,6 +811,7 @@ const BoardPage = () => {
                         members={board?.members || []}
                         labels={board?.labels || []}
                         board={board || undefined}
+                        boardSyncEpoch={boardSyncEpoch}
                     />
                 )
             }

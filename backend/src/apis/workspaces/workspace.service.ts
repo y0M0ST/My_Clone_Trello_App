@@ -16,7 +16,7 @@ import { validateEmail } from '@/common/utils/validateEmail';
 import { redisClient } from '@/config/redisClient';
 import { rbacProvider } from '@/common/utils/rbac';
 import { v4 as uuidv4 } from 'uuid';
-import { assertResendMailConfigured, EmailService } from '../mail/mail.service';
+import { assertSmtpConfigured, EmailService } from '../mail/mail.service';
 import { BoardMembers } from '../../common/entities/board-member.entity';
 import { Board } from '../../common/entities/board.entity';
 
@@ -717,7 +717,7 @@ export class WorkspaceService {
       throw new Error('Only workspace admin or moderator can invite members');
     }
 
-    assertResendMailConfigured();
+    assertSmtpConfigured();
 
     // Check if user exists
     const user = await this.userRepository.findOne({

@@ -10,6 +10,10 @@ export class CardService {
   private cardRepository = new CardRepository();
   private listRepository = new ListRepository();
   private notificationService = new NotificationService();
+
+  private emitBoard(boardId: string | undefined | null, reason: string): void {
+    if (boardId) emitBoardChanged(boardId, reason);
+  }
   async getCard(cardId: string, query: any): Promise<any> {
     const card = await this.cardRepository.getCardById(cardId, query);
     if (!card) {
@@ -99,6 +103,7 @@ export class CardService {
       userId
     );
 
+    this.emitBoard(boardId, 'card_created');
     return newCard;
   }
 
@@ -194,14 +199,18 @@ export class CardService {
       }
     }
 
+    this.emitBoard(oldCard.boardId, 'card_updated');
     return updatedCard;
   }
 
   async deleteCard(cardId: string): Promise<void> {
+    const existing = await this.cardRepository.getCardById(cardId, {});
+    const boardId = existing?.boardId;
     const result = await this.cardRepository.deleteCard(cardId);
     if (!result) {
       throw new Error('Card not found or delete failed');
     }
+    this.emitBoard(boardId, 'card_deleted');
   }
 
   async addLabelToCard(
@@ -223,6 +232,7 @@ export class CardService {
 
     await this.cardRepository.addLabelToCard(cardId, labelId, userId);
 
+    this.emitBoard(card.boardId, 'card_updated');
     return null;
   }
 
@@ -245,6 +255,7 @@ export class CardService {
 
     await this.cardRepository.removeLabelFromCard(cardId, labelId, userId);
 
+    this.emitBoard(card.boardId, 'card_updated');
     return null;
   }
 
@@ -267,6 +278,7 @@ export class CardService {
 
     await this.cardRepository.addMemberToCard(cardId, memberId, userId);
 
+    this.emitBoard(card.boardId, 'card_updated');
     return null;
   }
 
@@ -289,6 +301,7 @@ export class CardService {
 
     await this.cardRepository.removeMemberFromCard(cardId, memberId, userId);
 
+    this.emitBoard(card.boardId, 'card_updated');
     return null;
   }
 
@@ -346,18 +359,20 @@ export class CardService {
       });
     }
 
+    // Dùng boardId đã resolve — getCardById({ fields: 'board' }) chỉ select card.id nên card.boardId có thể undefined
     await boardActivityService.logActivity({
-      boardId: card.boardId,
+      boardId,
       actorId: userId,
       actionType: 'COMMENT_ADDED',
       targetType: 'CARD',
       targetId: cardId,
       metadata: {
-        cardTitle: card.title,
+        cardTitle: card.title ?? '',
         text: text,
       },
     });
 
+    this.emitBoard(boardId, 'comment_created');
     return action;
   }
 
@@ -374,14 +389,18 @@ export class CardService {
     if (!action) {
       throw new Error('Comment not found or update failed');
     }
+    const card = await this.cardRepository.getCardById(cardId, {});
+    this.emitBoard(card?.boardId, 'comment_updated');
     return action;
   }
 
   async deleteComment(cardId: string, actionId: string): Promise<void> {
+    const card = await this.cardRepository.getCardById(cardId, {});
     const result = await this.cardRepository.deleteComment(cardId, actionId);
     if (!result) {
       throw new Error('Comment not found or delete failed');
     }
+    this.emitBoard(card?.boardId, 'comment_deleted');
   }
 
   async createAttachment(
@@ -446,6 +465,7 @@ export class CardService {
       });
     }
 
+    this.emitBoard(card.boardId, 'card_updated');
     return attachment;
   }
 
@@ -467,6 +487,7 @@ export class CardService {
     if (!result) {
       throw new Error('Attachment not found or delete failed');
     }
+    this.emitBoard(card.boardId, 'card_updated');
   }
 
   async getAttachments(cardId: string, fields?: string): Promise<any[]> {
@@ -533,7 +554,7 @@ export class CardService {
       throw new Error('Card not found');
     }
 
-    return await this.cardRepository.createChecklist(
+    const created = await this.cardRepository.createChecklist(
       cardId,
       {
         name: checklistData.name,
@@ -542,6 +563,8 @@ export class CardService {
       checklistData.checklistSourceId,
       userId
     );
+    this.emitBoard(card.boardId, 'card_updated');
+    return created;
   }
 
   async updateChecklist(
@@ -563,6 +586,7 @@ export class CardService {
       throw new Error('Checklist not found or update failed');
     }
 
+    this.emitBoard(card.boardId, 'card_updated');
     return updated;
   }
 
@@ -584,6 +608,7 @@ export class CardService {
     if (!result) {
       throw new Error('Checklist not found or delete failed');
     }
+    this.emitBoard(card.boardId, 'card_updated');
   }
 
   async getCheckItems(
@@ -637,7 +662,7 @@ export class CardService {
       throw new Error('Card not found');
     }
 
-    return await this.cardRepository.createCheckItem(checklistId, {
+    const createdItem = await this.cardRepository.createCheckItem(checklistId, {
       name: checkItemData.name,
       position: checkItemData.position,
       isChecked: checkItemData.isChecked,
@@ -646,6 +671,8 @@ export class CardService {
         ? new Date(checkItemData.dueReminder)
         : undefined,
     });
+    this.emitBoard(card.boardId, 'card_updated');
+    return createdItem;
   }
 
   async updateCheckItem(
@@ -701,6 +728,7 @@ export class CardService {
       throw new Error('CheckItem not found or update failed');
     }
 
+    this.emitBoard(card.boardId, 'card_updated');
     return updated;
   }
 
@@ -721,6 +749,7 @@ export class CardService {
     if (!result) {
       throw new Error('CheckItem not found or delete failed');
     }
+    this.emitBoard(card.boardId, 'card_updated');
   }
 
   async moveCard(data: {

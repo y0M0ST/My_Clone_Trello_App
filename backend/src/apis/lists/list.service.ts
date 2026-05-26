@@ -48,6 +48,7 @@ export class ListService {
       boardId,
       position,
     });
+    emitBoardChanged(boardId, 'list_updated');
     return newList;
   }
 
@@ -70,6 +71,7 @@ export class ListService {
     if (!result) {
       throw new Error('List not found');
     }
+    emitBoardChanged(list.boardId, 'list_updated');
     return result;
   }
 
@@ -98,6 +100,7 @@ export class ListService {
       });
     }
 
+    emitBoardChanged(list.boardId, 'list_updated');
     return result;
   }
 
@@ -114,6 +117,8 @@ export class ListService {
     if (!result) {
       throw new Error('List not found');
     }
+
+    emitBoardChanged(list.boardId, 'list_updated');
 
     // Optional: Log unarchive if needed? The requirement was mostly about moving/archiving. 
     // Let's add it for consistency if action type exists, but standard Trello might not log unarchive as prominently.
@@ -138,6 +143,7 @@ export class ListService {
 
     await this.listRepository.bulkArchiveCards(cardIds);
 
+    emitBoardChanged(list.boardId, 'card_updated');
     return { archivedCount: cardIds.length };
   }
 
@@ -175,6 +181,10 @@ export class ListService {
       });
     }
 
+    if (list.boardId !== boardId) {
+      emitBoardChanged(list.boardId, 'list_updated');
+    }
+    emitBoardChanged(boardId, 'list_updated');
     return result;
   }
 
@@ -220,6 +230,11 @@ export class ListService {
       Math.floor(cardPosition + 1)
     );
 
+    const destBoardId = targetBoardId ?? targetList.boardId;
+    emitBoardChanged(sourceList.boardId, 'card_updated');
+    if (destBoardId !== sourceList.boardId) {
+      emitBoardChanged(destBoardId, 'card_updated');
+    }
     return { movedCount: cardIds.length };
   }
 
@@ -254,6 +269,7 @@ export class ListService {
       sourceCards
     );
 
+    emitBoardChanged(targetBoardId, 'list_updated');
     return {
       list: result.list,
       copiedCardsCount: result.copiedCount,
@@ -345,6 +361,7 @@ export class ListService {
       throw new Error('List not found');
     }
     const result = await this.listRepository.updateList(listId, data as any);
+    emitBoardChanged(list.boardId, 'list_updated');
     return result;
   }
 
@@ -364,7 +381,9 @@ export class ListService {
     if (!list) {
       throw new Error('List not found');
     }
+    const boardId = list.boardId;
     await this.listRepository.deleteList(listId);
+    emitBoardChanged(boardId, 'list_updated');
     return { message: 'List deleted successfully' };
   }
 }

@@ -63,7 +63,9 @@ export class CardRepository {
       if (basicFields.length > 0) {
         query.select(basicFields.map((field: string) => `card.${field}`));
       } else {
-        query.select(['card.id']);
+        // Luôn có boardId/title để service emit realtime & activity không thiếu FK
+        const minimal = ['card.id', 'card.boardId', 'card.title'];
+        query.select(minimal);
       }
 
       if (requestedRelations.includes('labels')) {

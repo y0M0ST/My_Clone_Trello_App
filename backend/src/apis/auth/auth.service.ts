@@ -17,6 +17,44 @@ export class AuthService {
   private refreshTokenRepository = AppDataSource.getRepository(RefreshToken);
   private emailService = new EmailService();
   private userService = new UserService();
+  private readonly redisOperationTimeoutMs = 1000;
+
+  private async withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+    return Promise.race([
+      promise,
+      new Promise<T>((_, reject) => {
+        setTimeout(() => reject(new Error('Redis operation timeout')), timeoutMs);
+      }),
+    ]);
+  }
+
+  private async getUserCache(id: string): Promise<string | null> {
+    if (!redisClient.isOpen) return null;
+
+    try {
+      const cached = await this.withTimeout(
+        redisClient.get(`user:${id}`),
+        this.redisOperationTimeoutMs
+      );
+      return typeof cached === 'string' ? cached : null;
+    } catch (error) {
+      console.warn('[AuthService] Skip Redis cache read:', (error as Error).message);
+      return null;
+    }
+  }
+
+  private async setUserCache(id: string, data: unknown): Promise<void> {
+    if (!redisClient.isOpen) return;
+
+    try {
+      await this.withTimeout(
+        redisClient.set(`user:${id}`, JSON.stringify(data), { EX: 900 }),
+        this.redisOperationTimeoutMs
+      );
+    } catch (error) {
+      console.warn('[AuthService] Skip Redis cache write:', (error as Error).message);
+    }
+  }
   async register(data: RegisterInput) {
     const existingEmail = await this.userRepository.findOne({
       where: { email: data.email },
@@ -272,19 +310,14 @@ export class AuthService {
   }
 
   async getMe(id: string) {
-    let cached = await redisClient.get(`user:${id}`);
-    if (Buffer.isBuffer(cached)) {
-      cached = cached.toString('utf-8');
-    }
+    const cached = await this.getUserCache(id);
     if (cached) return JSON.parse(cached);
     const user = await this.userService.getDetailUser(id);
     if (!user) throw new Error('User not found');
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password, ...userWithoutPassword } = user;
-    await redisClient.set(`user:${id}`, JSON.stringify(userWithoutPassword), {
-      EX: 900,
-    });
+    await this.setUserCache(id, userWithoutPassword);
     return userWithoutPassword;
   }
 

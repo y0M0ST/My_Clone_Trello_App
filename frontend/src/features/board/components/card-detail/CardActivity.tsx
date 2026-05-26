@@ -37,6 +37,7 @@ interface Props {
     cardId: string;
     board?: BoardDetail;
     canEdit?: boolean;
+    boardSyncEpoch?: number;
 }
 
 const getInitials = (name: string) => {
@@ -49,7 +50,7 @@ const getInitials = (name: string) => {
         .toUpperCase();
 };
 
-export const CardActivity = ({ cardId, board, canEdit = true }: Props) => {
+export const CardActivity = ({ cardId, board, canEdit = true, boardSyncEpoch = 0 }: Props) => {
     const [actions, setActions] = useState<Action[]>([]);
     const [commentText, setCommentText] = useState("");
     const [isSending, setIsSending] = useState(false);
@@ -98,8 +99,8 @@ export const CardActivity = ({ cardId, board, canEdit = true }: Props) => {
     };
 
     useEffect(() => {
-        fetchActions();
-    }, [cardId]);
+        void fetchActions();
+    }, [cardId, boardSyncEpoch]);
 
     const handleSendComment = async () => {
         if (!commentText.trim()) return;

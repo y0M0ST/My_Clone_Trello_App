@@ -29,9 +29,11 @@ interface Props {
     members?: Member[]; // Available board members
     labels?: any[]; // Available board labels
     board?: BoardDetail;
+    /** Tăng khi board refetch (socket / manual) — đồng bộ tab chi tiết thẻ */
+    boardSyncEpoch?: number;
 }
 
-export function CardDetailDialog({ card, open, onClose, onUpdate, members = [], labels = [], board }: Props) {
+export function CardDetailDialog({ card, open, onClose, onUpdate, members = [], labels = [], board, boardSyncEpoch = 0 }: Props) {
     const [title, setTitle] = useState(card.title);
 
     useEffect(() => {
@@ -164,6 +166,7 @@ export function CardDetailDialog({ card, open, onClose, onUpdate, members = [], 
                             <CardChecklist
                                 cardId={card.id}
                                 canEdit={canEdit}
+                                boardSyncEpoch={boardSyncEpoch}
                             />
 
                         </div>
@@ -202,6 +205,7 @@ export function CardDetailDialog({ card, open, onClose, onUpdate, members = [], 
                                 cardId={card.id}
                                 board={board}
                                 canEdit={canEdit}
+                                boardSyncEpoch={boardSyncEpoch}
                             />
                         </div>
 
