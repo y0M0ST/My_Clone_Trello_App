@@ -55,10 +55,12 @@ export class BoardService {
       { name: 'Xanh dương', color: '#0079bf' },
     ];
 
-    const labels = DEFAULT_LABELS.map(l => this.labelRepository.create({
-      ...l,
-      boardId: savedBoard.id
-    }));
+    const labels = DEFAULT_LABELS.map((l) =>
+      this.labelRepository.create({
+        ...l,
+        boardId: savedBoard.id,
+      })
+    );
     await this.labelRepository.save(labels);
 
     if (creatorId) {
@@ -88,18 +90,25 @@ export class BoardService {
     const qb = this.boardRepository
       .createQueryBuilder('board')
       .leftJoinAndSelect('board.workspace', 'workspace')
-      .leftJoin('board.boardMembers', 'member', 'member.userId = :userId', { userId })
+      .leftJoin('board.boardMembers', 'member', 'member.userId = :userId', {
+        userId,
+      })
       .where('workspace.id = :workspaceId', { workspaceId })
       .andWhere('workspace.isArchived = :isArchived', { isArchived: false })
       .andWhere('board.isClosed = :isClosed', { isClosed: false });
 
     // Filter by visibility/membership if userId provided
     if (userId) {
-      qb.andWhere(new Brackets((subQb) => {
-        subQb.where('board.visibility = :public', { public: 'public' })
-          .orWhere('board.visibility = :workspace', { workspace: 'workspace' })
-          .orWhere('member.id IS NOT NULL');
-      }));
+      qb.andWhere(
+        new Brackets((subQb) => {
+          subQb
+            .where('board.visibility = :public', { public: 'public' })
+            .orWhere('board.visibility = :workspace', {
+              workspace: 'workspace',
+            })
+            .orWhere('member.id IS NOT NULL');
+        })
+      );
     }
 
     qb.select([
@@ -130,8 +139,6 @@ export class BoardService {
         'lists',
         'lists.cards',
         'lists.cards.labels',
-        'lists.cards.members',
-        'lists.cards.attachments',
       ],
       select: {
         id: true,
@@ -181,13 +188,6 @@ export class BoardService {
             coverUrl: true,
             description: true,
             isArchived: true,
-            attachments: {
-              id: true,
-              name: true,
-              url: true,
-              mimeType: true,
-              createdAt: true,
-            },
           },
         },
       },
@@ -201,7 +201,7 @@ export class BoardService {
     if (!board) throw new Error('Board not found');
 
     // Filter out archived lists
-    board.lists = board.lists.filter(list => !list.isArchived);
+    board.lists = board.lists.filter((list) => !list.isArchived);
 
     const { inviteToken, ...boardWithoutSecret } = board;
 
@@ -221,8 +221,8 @@ export class BoardService {
         ...list,
         cards: list.cards
           ? list.cards
-            .filter((c) => !c.isArchived)
-            .sort((a: any, b: any) => a.position - b.position)
+              .filter((c) => !c.isArchived)
+              .sort((a: any, b: any) => a.position - b.position)
           : [],
       })),
     };
@@ -343,14 +343,19 @@ export class BoardService {
     };
   }
 
-  async respondToInvitation(boardId: string, userId: string, status: 'active' | 'declined') {
+  async respondToInvitation(
+    boardId: string,
+    userId: string,
+    status: 'active' | 'declined'
+  ) {
     const member = await this.boardMemberRepository.findOne({
       where: { boardId, userId },
       relations: ['board'],
     });
 
     if (!member) throw new Error('Invitation not found');
-    if (member.status !== 'pending') throw new Error('Invitation is not pending');
+    if (member.status !== 'pending')
+      throw new Error('Invitation is not pending');
 
     if (status === 'declined') {
       await this.boardMemberRepository.remove(member);
@@ -384,7 +389,10 @@ export class BoardService {
       }
     );
     const appBase =
-      process.env.FRONTEND_URL || process.env.CLIENT_URL || process.env.BACKEND_URL || '';
+      process.env.FRONTEND_URL ||
+      process.env.CLIENT_URL ||
+      process.env.BACKEND_URL ||
+      '';
     const base = appBase.replace(/\/$/, '');
     const linkInvite = `${base}/boards/${boardId}?invite=${inviteToken}`;
     return {
@@ -700,7 +708,7 @@ export class BoardService {
     if (
       settings.workspaceMembersCanEditAndJoin !== undefined &&
       settings.workspaceMembersCanEditAndJoin !==
-      board.workspaceMembersCanEditAndJoin
+        board.workspaceMembersCanEditAndJoin
     ) {
       changedFields.workspaceMembersCanEditAndJoin = {
         old: board.workspaceMembersCanEditAndJoin,
